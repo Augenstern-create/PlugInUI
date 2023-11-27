@@ -1,209 +1,135 @@
-// Dear ImGui: standalone example application for Win32 + OpenGL 3
+// // Dear ImGui: standalone example application for Win32 + OpenGL 3
 
-// Learn about Dear ImGui:
-// - FAQ                  https://dearimgui.com/faq
-// - Getting Started      https://dearimgui.com/getting-started
-// - Documentation        https://dearimgui.com/docs (same as your local docs/ folder).
-// - Introduction, links and more at the top of imgui.cpp
+// // Learn about Dear ImGui:
+// // - FAQ                  https://dearimgui.com/faq
+// // - Getting Started      https://dearimgui.com/getting-started
+// // - Documentation        https://dearimgui.com/docs (same as your local docs/ folder).
+// // - Introduction, links and more at the top of imgui.cpp
 
-// This is provided for completeness, however it is strongly recommended you use OpenGL with SDL or GLFW.
+// // This is provided for completeness, however it is strongly recommended you use OpenGL with SDL or GLFW.
 
-#include "imgui_menu.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_impl_win32.h"
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#include <GL/GL.h>
-#include <tchar.h>
-#include <stb_image.h>
+// #include "imgui_menu.h"
+// #include "imgui_impl_opengl3.h"
+// #include "imgui_impl_win32.h"
+// #include "imgui_impl_glfw.h"
+// #ifndef WIN32_LEAN_AND_MEAN
+// #define WIN32_LEAN_AND_MEAN
+// #endif
+// #include <windows.h>
+// #include "glad/glad.h"
+// #define GLFW_INCLUDE_NONE
+// #include "GLFW/glfw3.h"
+// #include <tchar.h>
+// #include <stb_image.h>
+// #include <filesystem>
 
-// Data stored per platform window
-struct WGL_WindowData {
-    HDC hDC;
-};
+// #include "vmmdll.h"
 
-// Data
-static HGLRC g_hRC;
-static WGL_WindowData g_MainWindow;
-static int g_Width;
-static int g_Height;
+// #include <cstdlib>  // 包含 std::system 函数的头文件
 
-// Forward declarations of helper functions
-bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data);
-void CleanupDeviceWGL(HWND hWnd, WGL_WindowData* data);
-void ResetDeviceWGL();
-LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+// // Data stored per platform window
+// struct WGL_WindowData {
+//     HDC hDC;
+// };
 
-// Main code
-int main(int, char**) {
-    // Create application window
-    // ImGui_ImplWin32_EnableDpiAwareness();
-    WNDCLASSEXW wc = {sizeof(wc), CS_OWNDC, WndProc,          0L,  0L, GetModuleHandle(NULL), NULL, NULL,
-                      NULL,       NULL,     L"ImGui Example", NULL};
-    ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui Win32+OpenGL3 Example", WS_OVERLAPPEDWINDOW, 100, 100,
-                                1280, 800, NULL, NULL, wc.hInstance, NULL);
+// // Data
+// static HGLRC g_hRC;
+// static WGL_WindowData g_MainWindow;
+// static int g_Width;
+// static int g_Height;
 
-    // Initialize OpenGL
-    if (!CreateDeviceWGL(hwnd, &g_MainWindow)) {
-        CleanupDeviceWGL(hwnd, &g_MainWindow);
-        ::DestroyWindow(hwnd);
-        ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-        return 1;
-    }
-    wglMakeCurrent(g_MainWindow.hDC, g_hRC);
+// // Main code
+// int main(int, char**) {
+//     if (!glfwInit()) {
+//         fprintf(stderr, "Failed to initialize GLFW\n");
+//         return -1;
+//     }
+//     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+//     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+//     GLFWwindow* window = glfwCreateWindow(1280, 800, "Dear ImGui GLFW+OpenGL3 Example", NULL, NULL);
+//     if (!window) {
+//         fprintf(stderr, "Failed to create GLFW window\n");
+//         glfwTerminate();
+//         return -1;
+//     }
+//     glfwMakeContextCurrent(window);
 
-    // Show the window
-    ::ShowWindow(hwnd, SW_SHOWDEFAULT);
-    ::UpdateWindow(hwnd);
+//     // VMMDLL_Initialize();
+//     // Initialize glad
+//     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+//         fprintf(stderr, "Failed to initialize GLAD\n");
+//         glfwTerminate();
+//         return -1;
+//     }
 
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+//     LPSTR arguments[] = {
+//         "-norefresh", "-device", "FPGA"  // 例如，指定设备为 usb3380
+//         // 添加其他参数...
+//     };
 
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    // ImGui::StyleColorsClassic();
+//     // 计算参数个数
+//     DWORD argc = sizeof(arguments) / sizeof(arguments[0]);
+//     if (argc == 0) {
+//         argc = 1;
+//         fprintf(stderr, "Initialization arge is: %d\n", argc);
+//     }
 
-    // Setup Platform/Renderer backends
-    ImGui_ImplWin32_InitForOpenGL(hwnd);
-    ImGui_ImplOpenGL3_Init();
+//     VMM_HANDLE vmmHandle = VMMDLL_Initialize(argc, arguments);
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use
-    // ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application
-    // (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling
-    // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double
-    // backslash \\ !
-    // io.Fonts->AddFontDefault();
-    // io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    // io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    // io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    // ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL,
-    // io.Fonts->GetGlyphRangesJapanese()); IM_ASSERT(font != NULL);
-    const char* fontPath = ".\\segoeui.ttf";  // 修改为你系统中的实际字体路径
-    float fontSize = 18.0f;
-    ImFont* font = io.Fonts->AddFontFromFileTTF(fontPath, fontSize);
-    if (font == NULL) {
-        font = io.Fonts->AddFontDefault();
-    }
+//     if (vmmHandle != NULL) {
+//         fprintf(stderr, "Initialization successful\n");
+//     } else {
+//         fprintf(stderr, "Initialization failure error \n");
+//     }
+//     IMGUI_CHECKVERSION();
+//     ImGui::CreateContext();
+//     ImGuiIO& io = ImGui::GetIO();
+//     (void)io;
+//     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+//     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+//     ImGui::StyleColorsDark();
+//     ImGui_ImplGlfw_InitForOpenGL(window, true);
+//     ImGui_ImplOpenGL3_Init("#version 330");
+//     std::filesystem::path currentPath = std::filesystem::current_path();
+//     std::string run_path = currentPath.string();
+//     std::string font_path = run_path + "\\DouyinSansBold.otf";
+//     float fontSize = 14.0f;
+//     ImFont* font =
+//         io.Fonts->AddFontFromFileTTF(font_path.c_str(), fontSize, NULL, io.Fonts->GetGlyphRangesChineseFull());
+//     if (font == NULL) {
+//         font = io.Fonts->AddFontDefault();
+//     }
+//     // Our state
+//     bool show_menu_window = true;
+//     bool show_another_window = false;
+//     ImVec4 clear_color = ImVec4(0.0f, 1.0f, 0.00f, 1.00f);
+//     ImGui::ShowExampleAppMenuInitializelist();
+//     std::string but_img_path = run_path + "\\photograph\\but_player.png";
+//     ImGui::SetButPlayerImg(ImGui::LoadTexture(but_img_path.c_str()));
+//     bool done = false;
+//     while (!done) {
+//         done = glfwWindowShouldClose(window);
+//         if (done) break;
+//         glfwPollEvents();
 
-    // Our state
-    bool show_menu_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    ImGui::ShowExampleAppMenuInitializelist();
-
-    // Main loop
-    bool done = false;
-    while (!done) {
-        // Poll and handle messages (inputs, window resize, etc.)
-        // See the WndProc() function below for our to dispatch events to the Win32 backend.
-        MSG msg;
-        while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
-            ::TranslateMessage(&msg);
-            ::DispatchMessage(&msg);
-            if (msg.message == WM_QUIT) done = true;
-        }
-        if (done) break;
-
-        // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
-
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code
-        // to learn more about Dear ImGui!).
-        if (show_menu_window) ImGui::ShowMenuWindow(&show_menu_window);
-
-        // Rendering
-        ImGui::Render();
-        glViewport(0, 0, g_Width, g_Height);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        // Present
-        ::SwapBuffers(g_MainWindow.hDC);
-    }
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-
-    CleanupDeviceWGL(hwnd, &g_MainWindow);
-    wglDeleteContext(g_hRC);
-    ::DestroyWindow(hwnd);
-    ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-
-    return 0;
-}
-
-// Helper functions
-bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data) {
-    HDC hDc = ::GetDC(hWnd);
-    PIXELFORMATDESCRIPTOR pfd = {0};
-    pfd.nSize = sizeof(pfd);
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 32;
-
-    const int pf = ::ChoosePixelFormat(hDc, &pfd);
-    if (pf == 0) return false;
-    if (::SetPixelFormat(hDc, pf, &pfd) == FALSE) return false;
-    ::ReleaseDC(hWnd, hDc);
-
-    data->hDC = ::GetDC(hWnd);
-    if (!g_hRC) g_hRC = wglCreateContext(data->hDC);
-    return true;
-}
-
-void CleanupDeviceWGL(HWND hWnd, WGL_WindowData* data) {
-    wglMakeCurrent(NULL, NULL);
-    ::ReleaseDC(hWnd, data->hDC);
-}
-
-// Forward declare message handler from imgui_impl_win32.cpp
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-// Win32 message handler
-// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite
-// your copy of the mouse data.
-// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or
-// clear/overwrite your copy of the keyboard data. Generally you may always pass all inputs to dear imgui, and hide them
-// from your application based on those two flags.
-LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) return true;
-
-    switch (msg) {
-        case WM_SIZE:
-            if (wParam != SIZE_MINIMIZED) {
-                g_Width = LOWORD(lParam);
-                g_Height = HIWORD(lParam);
-            }
-            return 0;
-        case WM_SYSCOMMAND:
-            if ((wParam & 0xfff0) == SC_KEYMENU)  // Disable ALT application menu
-                return 0;
-            break;
-        case WM_DESTROY:
-            ::PostQuitMessage(0);
-            return 0;
-    }
-    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
-}
+//         // ImGui::SetNextWindowSize(ImVec2(1, 1));  // 设置到一个极小的大小
+//         ImGui_ImplOpenGL3_NewFrame();
+//         ImGui_ImplGlfw_NewFrame();
+//         ImGui::NewFrame();
+//         if (show_menu_window) ImGui::ShowMenuWindow(&show_menu_window);
+//         ImGui::Render();
+//         int display_w, display_h;
+//         glfwGetFramebufferSize(window, &display_w, &display_h);
+//         glViewport(0, 0, display_w, display_h);
+//         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+//         glClear(GL_COLOR_BUFFER_BIT);
+//         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+//         glfwSwapBuffers(window);
+//     }
+//     ImGui_ImplOpenGL3_Shutdown();
+//     ImGui_ImplGlfw_Shutdown();
+//     ImGui::DestroyContext();
+//     glfwDestroyWindow(window);
+//     glfwTerminate();
+//     return 0;
+// }
