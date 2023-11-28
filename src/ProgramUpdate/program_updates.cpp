@@ -25,9 +25,7 @@ bool UpdateProgram();
 bool unzipFile(const std::string& zipFilePath, const std::string& destinationPath);
 
 int main(int, char**) {
-    if (UpdateProgram()) {
-        return 0;
-    }
+    UpdateProgram();
     std::string newProgramPath = ".\\PlugInUI.exe";
     std::system(newProgramPath.c_str());
     return 0;

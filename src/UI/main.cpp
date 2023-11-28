@@ -62,25 +62,25 @@
 //         return -1;
 //     }
 
-//     LPSTR arguments[] = {
-//         "-norefresh", "-device", "FPGA"  // 例如，指定设备为 usb3380
-//         // 添加其他参数...
-//     };
+// LPSTR arguments[] = {
+//     "-norefresh", "-device", "FPGA"  // 例如，指定设备为 usb3380
+//     // 添加其他参数...
+// };
 
-//     // 计算参数个数
-//     DWORD argc = sizeof(arguments) / sizeof(arguments[0]);
-//     if (argc == 0) {
-//         argc = 1;
-//         fprintf(stderr, "Initialization arge is: %d\n", argc);
-//     }
+// // 计算参数个数
+// DWORD argc = sizeof(arguments) / sizeof(arguments[0]);
+// if (argc == 0) {
+//     argc = 1;
+//     fprintf(stderr, "Initialization arge is: %d\n", argc);
+// }
 
-//     VMM_HANDLE vmmHandle = VMMDLL_Initialize(argc, arguments);
+// VMM_HANDLE vmmHandle = VMMDLL_Initialize(argc, arguments);
 
-//     if (vmmHandle != NULL) {
-//         fprintf(stderr, "Initialization successful\n");
-//     } else {
-//         fprintf(stderr, "Initialization failure error \n");
-//     }
+// if (vmmHandle != NULL) {
+//     fprintf(stderr, "Initialization successful\n");
+// } else {
+//     fprintf(stderr, "Initialization failure error \n");
+// }
 //     IMGUI_CHECKVERSION();
 //     ImGui::CreateContext();
 //     ImGuiIO& io = ImGui::GetIO();

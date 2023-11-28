@@ -11,8 +11,6 @@
 #include "stb_image.h"
 
 #include <tuple>
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
 
 namespace ImGui {
 std::vector<std::tuple<std::string, std::string, bool>> chbox_list_;
@@ -26,17 +24,6 @@ static ToolBoxes toolboxes_ = ToolBoxes::player;
 static ImU32 subform_color_ = IM_COL32(41, 43, 56, 128);
 }  // namespace ImGui
 
-// Helper to display a little (?) mark which shows a tooltip when hovered.
-// In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
-static void HelpMarker(const char* desc) {
-    ImGui::TextDisabled("(?)");
-    if (ImGui::BeginItemTooltip()) {
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
 ImGui::Mat::Mat() : width_(0), height_(0), channels_(0), data_(nullptr), file_name_(nullptr) {}  // 修正构造函数定义
 ImGui::Mat::Mat(const char* filename) {
     file_name_ = filename;
@@ -60,37 +47,40 @@ ImGui::Mat ImGui::loadImage(const char* filename) {
     return *img;
 }
 
-unsigned int ImGui::LoadTexture(const char* path) {
-    int width, height, channels;
-    unsigned char* data = stbi_load(path, &width, &height, &channels, 0);
+// ID3D11ShaderResourceView* ImGui::LoadTexture(const char* path) {
+//     int width, height, channels;
+//     unsigned char* data = stbi_load(path, &width, &height, &channels, 0);
 
-    if (data == nullptr) {
-        // 处理加载失败的情况
-        fprintf(stderr, "Failed to load image: %s\npath is: %s\n", stbi_failure_reason(), path);
-        return 0;
-    }
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    if (channels == 4) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    }
+//     if (data == nullptr) {
+//         // Handle loading failure
+//         fprintf(stderr, "Failed to load image: %s\npath is: %s\n", stbi_failure_reason(), path);
+//         return nullptr;
+//     }
 
-    else if (channels == 3) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    } else {
-        fprintf(stderr, "width is: %d,    height is: %d,    channels is: %d\n", width, height, channels);
-    }
-    glGenerateMipmap(GL_TEXTURE_2D);
-    // 释放图像数据
-    stbi_image_free(data);
+//     DirectX::TexMetadata metadata;
+//     metadata.width = width;
+//     metadata.height = height;
+//     metadata.depth = 1;
+//     metadata.arraySize = 1;
+//     metadata.format = (channels == 4) ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8_UNORM;
+//     metadata.mipLevels = 1;
+//     metadata.dimension = DirectX::TEX_DIMENSION_TEXTURE2D;
 
-    return textureID;
-}
+//     DirectX::ScratchImage scratchImage;
+//     scratchImage.Initialize2D(metadata.format, metadata.width, metadata.height, 1, 1);
+
+//     // Copy image data to scratchImage
+//     memcpy(scratchImage.GetPixels(), data, metadata.width * metadata.height * channels);
+
+//     // Release image data
+//     stbi_image_free(data);
+
+//     ID3D11ShaderResourceView* pTextureView;
+//     DirectX::CreateShaderResourceView(g_pd3dDevice, scratchImage.GetImages(), scratchImage.GetImageCount(), metadata,
+//                                       &pTextureView);
+
+//     return pTextureView;
+// }
 
 void ImGui::SetButPlayerImg(unsigned int id) { but_player_img_id_ = id; }
 
@@ -393,7 +383,7 @@ void ImGui::RenderRoundedRect(ImDrawList* drawList, ImVec2 pMin, ImVec2 pMax, fl
 
 void ImGui::SubFormComfig1(const char* name, float width, float height,
                            std::vector<std::tuple<std::string, std::string, bool>>* chbox_list) {
-    ImGui::BeginChild(name, ImVec2(width, height), ImGuiChildFlags_None, ImGuiWindowFlags_None);
+    ImGui::BeginChild(name, ImVec2(width, height), false, ImGuiWindowFlags_None);
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
     RenderRoundedRect(ImGui::GetWindowDrawList(), childPos, ImVec2(childPos.x + childSize.x, childPos.y + childSize.y),
@@ -414,7 +404,7 @@ void ImGui::SubFormComfig1(const char* name, float width, float height,
 }
 void ImGui::SubFormComfig2(const char* name, float width, float height,
                            std::vector<std::tuple<std::string, std::string, float>>* slider_list) {
-    ImGui::BeginChild(name, ImVec2(width, height), ImGuiChildFlags_None, ImGuiWindowFlags_None);
+    ImGui::BeginChild(name, ImVec2(width, height), false, ImGuiWindowFlags_None);
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
     RenderRoundedRect(ImGui::GetWindowDrawList(), childPos, ImVec2(childPos.x + childSize.x, childPos.y + childSize.y),
@@ -432,7 +422,7 @@ void ImGui::SubFormComfig2(const char* name, float width, float height,
 }
 void ImGui::SubFormComfig3(const char* name, float width, float height,
                            std::vector<std::tuple<std::string, std::string, int>>* slider_list) {
-    ImGui::BeginChild(name, ImVec2(width, height), ImGuiChildFlags_None, ImGuiWindowFlags_None);
+    ImGui::BeginChild(name, ImVec2(width, height), false, ImGuiWindowFlags_None);
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
     RenderRoundedRect(ImGui::GetWindowDrawList(), childPos, ImVec2(childPos.x + childSize.x, childPos.y + childSize.y),
@@ -453,7 +443,7 @@ void ImGui::SubFormComfig3(const char* name, float width, float height,
 
 void ImGui::SubFormComfig4(const char* name, float width, float height,
                            std::vector<std::tuple<std::string, std::string, ImVec4>>* clore_list) {
-    ImGui::BeginChild(name, ImVec2(width, height), ImGuiChildFlags_None, ImGuiWindowFlags_None);
+    ImGui::BeginChild(name, ImVec2(width, height), false, ImGuiWindowFlags_None);
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
     RenderRoundedRect(ImGui::GetWindowDrawList(), childPos, ImVec2(childPos.x + childSize.x, childPos.y + childSize.y),
@@ -475,7 +465,7 @@ void ImGui::SubFormComfig4(const char* name, float width, float height,
 }
 
 void ImGui::SubFormMenuBar(float width, float height) {
-    ImGui::BeginChild("MenuPanel", ImVec2(width, height), ImGuiChildFlags_None, ImGuiWindowFlags_None);
+    ImGui::BeginChild("MenuPanel", ImVec2(width, height), false, ImGuiWindowFlags_None);
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
     RenderRoundedRect(ImGui::GetWindowDrawList(), childPos, ImVec2(childPos.x + childSize.x, childPos.y + childSize.y),
@@ -504,7 +494,7 @@ void ImGui::SubFormMenuBar(float width, float height) {
     ImGui::EndChild();
 }
 void ImGui::SubFormSecondaryMenu(float width, float height) {
-    ImGui::BeginChild("MenuPanel2", ImVec2(width, height), ImGuiChildFlags_None, ImGuiWindowFlags_None);
+    ImGui::BeginChild("MenuPanel2", ImVec2(width, height), false, ImGuiWindowFlags_None);
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
     RenderRoundedRect(ImGui::GetWindowDrawList(), childPos, ImVec2(childPos.x + childSize.x, childPos.y + childSize.y),
@@ -518,12 +508,11 @@ void ImGui::SubFormFunctionBlock(float width, float height) {
     ImVec2 slider_size = ImVec2(MenuPanel4_size.x / 3 - 30, height * 2 / 3);
     ImVec2 color_selection_size = ImVec2(cbox_size.x + slider_size.x + 9.0f, (height / 3) - 10);
     ImVec2 character_size = ImVec2(MenuPanel4_size.x / 2 - 15, MenuPanel4_size.y);
-    ImGui::BeginChild("MenuPanel3", ImVec2(width, height), ImGuiChildFlags_None, ImGuiWindowFlags_None);
+    ImGui::BeginChild("MenuPanel3", ImVec2(width, height), false, ImGuiWindowFlags_None);
     ImGui::Columns(2, nullptr, false);
     ImGui::SetColumnWidth(0, MenuPanel4_size.x);
     ImGui::SetColumnWidth(1, MenuPanel4_size.x / 2);
-    ImGui::BeginChild("MenuPanel4", ImVec2(MenuPanel4_size.x, MenuPanel4_size.y), ImGuiChildFlags_None,
-                      ImGuiWindowFlags_None);
+    ImGui::BeginChild("MenuPanel4", ImVec2(MenuPanel4_size.x, MenuPanel4_size.y), false, ImGuiWindowFlags_None);
     ImGui::Columns(2, nullptr, false);
     ImGui::SetColumnWidth(0, MenuPanel4_size.x * 2 / 3);
     ImGui::SetColumnWidth(1, MenuPanel4_size.x / 3);
@@ -537,8 +526,7 @@ void ImGui::SubFormFunctionBlock(float width, float height) {
     ImGui::EndChild();
     ImGui::NextColumn();
 
-    ImGui::BeginChild("MenuPanel5", ImVec2(character_size.x, character_size.y), ImGuiChildFlags_None,
-                      ImGuiWindowFlags_None);
+    ImGui::BeginChild("MenuPanel5", ImVec2(character_size.x, character_size.y), false, ImGuiWindowFlags_None);
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
     RenderRoundedRect(ImGui::GetWindowDrawList(), childPos, ImVec2(childPos.x + childSize.x, childPos.y + childSize.y),
@@ -548,19 +536,12 @@ void ImGui::SubFormFunctionBlock(float width, float height) {
     ImGui::Columns(1);
 }
 
-void ImGui::ShowMenuWindow(bool* p_open) {
+void ImGui::ShowMenuWindow(bool* p_open, ImVec2 display_size) {
     IM_ASSERT(ImGui::GetCurrentContext() != NULL && "Missing Dear ImGui context. Refer to examples app!");
     ImGuiWindowFlags window_flags = 0;
-    // We specify a default position/size in case there's no data in the .ini file.
-    // We only do it to make the demo applications a little more welcoming, but typically this isn't required.
-    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20),
-                            ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
-    // ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
-    // Main body of the Demo window starts here.
+    ImGui::SetNextWindowPos({display_size.x / 6, display_size.y / 6}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(display_size.x * 2 / 3, display_size.y * 2 / 3), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Windows Menu", p_open, window_flags)) {
-        // Early out if the window is collapsed, as an optimization.
         ImGui::End();
         return;
     }

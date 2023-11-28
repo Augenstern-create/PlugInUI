@@ -19,11 +19,12 @@
 #include <windows.h>
 #include <stb_image.h>
 #include <filesystem>
-#include "vmmdll.h"
+#include "dx11_vmm.h"
 #include <cstdlib>  // 包含 std::system 函数的头文件
+#include "version.h"
 
 #pragma comment(lib, "d3d11.lib")
-#pragma warning(disable : 4996)
+// #pragma warning(disable : 4996)
 
 static ID3D11Device* g_pd3dDevice = NULL;
 static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
@@ -44,6 +45,11 @@ void Helpmarker(const char* Text, ImVec4 Color) {
 }
 
 int main(int, char**) {
+    std::cout << "Version : " << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH
+              << std::endl;
+
+    vmm_init();
+
     WNDCLASSEX wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL,
                      _T("ImGui Tool"),   NULL};
     ::RegisterClassEx(&wc);
@@ -64,8 +70,8 @@ int main(int, char**) {
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     ImGui::StyleColorsDark();
 
@@ -86,20 +92,8 @@ int main(int, char**) {
         font = io.Fonts->AddFontDefault();
     }
 
-    ImFont* Font_Big =
-        io.Fonts->AddFontFromFileTTF(font_path.c_str(), 18.0f, &Font_cfg, io.Fonts->GetGlyphRangesChineseFull());
-    if (font == NULL) {
-        font = io.Fonts->AddFontDefault();
-    }
-
-    // ImFont* Font = io.Fonts->AddFontFromFileTTF("..\\ImGui Tool\\Font.ttf", 18.0f, NULL,
-    // io.Fonts->GetGlyphRangesChineseFull());
-    // ImFont* Font = io.Fonts->AddFontFromMemoryTTF((void*)Font_data, Font_size, 18.0f, &Font_cfg,
-    //                                               io.Fonts->GetGlyphRangesChineseFull());
-    // ImFont* Font_Big = io.Fonts->AddFontFromMemoryTTF((void*)Font_data, Font_size, 24.0f, &Font_cfg,
-    //                                                   io.Fonts->GetGlyphRangesChineseFull());
-
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImGui::ShowExampleAppMenuInitializelist();
 
     bool done = false;
     while (!done) {
@@ -117,244 +111,14 @@ int main(int, char**) {
 
         {
             ImGuiStyle& Style = ImGui::GetStyle();
-            auto Color = Style.Colors;
-
-            static bool WinPos = true;                         // 用于初始化窗口位置
             int Screen_Width{GetSystemMetrics(SM_CXSCREEN)};   // 获取显示器的宽
             int Screen_Heigth{GetSystemMetrics(SM_CYSCREEN)};  // 获取显示器的高
-
-            static bool CheckBox_1 = false, CheckBox_2 = true;
-            static int InputInt = 0;
-            static int Comb = 0;
-            static float InputFloat = 0;
-            static char InputString[80] = {'?'};
-
-            static int Tab = 0;
-            enum Tab { Panel, Button, Input, CheckBox };
-
-            static int Color_ = 0;
-            enum Color_ { Red, Green, Blue, Orange };
-
-            switch (Color_) {
-                case Color_::Red:
-                    Style.ChildRounding = 8.0f;
-                    Style.FrameRounding = 5.0f;
-
-                    Color[ImGuiCol_Button] = ImColor(192, 51, 74, 255);
-                    Color[ImGuiCol_ButtonHovered] = ImColor(212, 71, 94, 255);
-                    Color[ImGuiCol_ButtonActive] = ImColor(172, 31, 54, 255);
-
-                    Color[ImGuiCol_FrameBg] = ImColor(54, 54, 54, 150);
-                    Color[ImGuiCol_FrameBgActive] = ImColor(42, 42, 42, 150);
-                    Color[ImGuiCol_FrameBgHovered] = ImColor(100, 100, 100, 150);
-
-                    Color[ImGuiCol_CheckMark] = ImColor(192, 51, 74, 255);
-
-                    Color[ImGuiCol_SliderGrab] = ImColor(192, 51, 74, 255);
-                    Color[ImGuiCol_SliderGrabActive] = ImColor(172, 31, 54, 255);
-
-                    Color[ImGuiCol_Header] = ImColor(192, 51, 74, 255);
-                    Color[ImGuiCol_HeaderHovered] = ImColor(212, 71, 94, 255);
-                    Color[ImGuiCol_HeaderActive] = ImColor(172, 31, 54, 255);
-                    break;
-                case Color_::Green:
-                    Style.ChildRounding = 8.0f;
-                    Style.FrameRounding = 5.0f;
-
-                    Color[ImGuiCol_Button] = ImColor(10, 105, 56, 255);
-                    Color[ImGuiCol_ButtonHovered] = ImColor(30, 125, 76, 255);
-                    Color[ImGuiCol_ButtonActive] = ImColor(0, 95, 46, 255);
-
-                    Color[ImGuiCol_FrameBg] = ImColor(54, 54, 54, 150);
-                    Color[ImGuiCol_FrameBgActive] = ImColor(42, 42, 42, 150);
-                    Color[ImGuiCol_FrameBgHovered] = ImColor(100, 100, 100, 150);
-
-                    Color[ImGuiCol_CheckMark] = ImColor(10, 105, 56, 255);
-
-                    Color[ImGuiCol_SliderGrab] = ImColor(10, 105, 56, 255);
-                    Color[ImGuiCol_SliderGrabActive] = ImColor(0, 95, 46, 255);
-
-                    Color[ImGuiCol_Header] = ImColor(10, 105, 56, 255);
-                    Color[ImGuiCol_HeaderHovered] = ImColor(30, 125, 76, 255);
-                    Color[ImGuiCol_HeaderActive] = ImColor(0, 95, 46, 255);
-
-                    break;
-                case Color_::Blue:
-                    Style.ChildRounding = 8.0f;
-                    Style.FrameRounding = 5.0f;
-
-                    Color[ImGuiCol_Button] = ImColor(51, 120, 255, 255);
-                    Color[ImGuiCol_ButtonHovered] = ImColor(71, 140, 255, 255);
-                    Color[ImGuiCol_ButtonActive] = ImColor(31, 100, 225, 255);
-
-                    Color[ImGuiCol_FrameBg] = ImColor(54, 54, 54, 150);
-                    Color[ImGuiCol_FrameBgActive] = ImColor(42, 42, 42, 150);
-                    Color[ImGuiCol_FrameBgHovered] = ImColor(100, 100, 100, 150);
-
-                    Color[ImGuiCol_CheckMark] = ImColor(51, 120, 255, 255);
-
-                    Color[ImGuiCol_SliderGrab] = ImColor(51, 120, 255, 255);
-                    Color[ImGuiCol_SliderGrabActive] = ImColor(31, 100, 225, 255);
-
-                    Color[ImGuiCol_Header] = ImColor(51, 120, 255, 255);
-                    Color[ImGuiCol_HeaderHovered] = ImColor(71, 140, 255, 255);
-                    Color[ImGuiCol_HeaderActive] = ImColor(31, 100, 225, 255);
-
-                    break;
-                case Color_::Orange:  // 233,87,33
-                    Style.ChildRounding = 8.0f;
-                    Style.FrameRounding = 5.0f;
-
-                    Color[ImGuiCol_Button] = ImColor(233, 87, 33, 255);
-                    Color[ImGuiCol_ButtonHovered] = ImColor(253, 107, 53, 255);
-                    Color[ImGuiCol_ButtonActive] = ImColor(213, 67, 13, 255);
-
-                    Color[ImGuiCol_FrameBg] = ImColor(54, 54, 54, 150);
-                    Color[ImGuiCol_FrameBgActive] = ImColor(42, 42, 42, 150);
-                    Color[ImGuiCol_FrameBgHovered] = ImColor(100, 100, 100, 150);
-
-                    Color[ImGuiCol_CheckMark] = ImColor(233, 87, 33, 255);
-
-                    Color[ImGuiCol_SliderGrab] = ImColor(233, 87, 33, 255);
-                    Color[ImGuiCol_SliderGrabActive] = ImColor(213, 67, 13, 255);
-
-                    Color[ImGuiCol_Header] = ImColor(233, 87, 33, 255);
-                    Color[ImGuiCol_HeaderHovered] = ImColor(253, 107, 53, 255);
-                    Color[ImGuiCol_HeaderActive] = ImColor(213, 67, 13, 255);
-
-                    break;
+            static bool show_menu_window = true;
+            if (show_menu_window) {
+                ImGui::ShowMenuWindow(&show_menu_window, ImVec2((float)Screen_Width, (float)Screen_Heigth));
+            } else {
+                break;
             }
-
-            if (WinPos)  // 初始化窗口
-            {
-                ImGui::SetNextWindowPos({float(Screen_Width - 600) / 2, float(Screen_Heigth - 400) / 2});
-                WinPos = false;  // 初始化完毕
-            }
-
-            ImGui::Begin(u8"ImGui Tool", NULL,
-                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                             ImGuiWindowFlags_NoSavedSettings);  // 开始绘制窗口
-            ImGui::SetWindowSize({600.0f, 400.0f});              // 设置窗口大小
-
-            {
-                ImGui::GetWindowDrawList()->AddLine(
-                    {ImGui::GetWindowPos().x + 420.0f, ImGui::GetWindowPos().y + 10.0f},
-                    {ImGui::GetWindowPos().x + 420.0f, ImGui::GetWindowPos().y + 390.0f}, ImColor(100, 100, 100, 255));
-
-                ImGui::SetCursorPos({430.0f, 20.0f});
-                ImGui::PushFont(Font_Big);
-                ImGui::TextColored(Color[ImGuiCol_Button], u8"ImGui Tool \u9B08");
-                ImGui::PopFont();
-
-                ImGui::SetCursorPos({430.0f, 65.0f});
-
-                ImGui::PushStyleColor(ImGuiCol_Button,
-                                      Tab == Tab::Panel ? Color[ImGuiCol_Button] : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                if (ImGui::Button(u8"Panel", {150.0f, 40.0f})) {
-                    Tab = Tab::Panel;
-                }
-                ImGui::PopStyleColor();
-
-                ImGui::PushStyleColor(ImGuiCol_Button,
-                                      Tab == Tab::Button ? Color[ImGuiCol_Button] : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                ImGui::SetCursorPos({430.0f, 115.0f});
-                if (ImGui::Button(u8"Button", {150.0f, 40.0f})) {
-                    Tab = Tab::Button;
-                }
-                ImGui::PopStyleColor();
-
-                ImGui::PushStyleColor(ImGuiCol_Button,
-                                      Tab == Tab::Input ? Color[ImGuiCol_Button] : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                ImGui::SetCursorPos({430.0f, 165.0f});
-                if (ImGui::Button(u8"Input", {150.0f, 40.0f})) {
-                    Tab = Tab::Input;
-                }
-                ImGui::PopStyleColor();
-
-                ImGui::PushStyleColor(ImGuiCol_Button,
-                                      Tab == Tab::CheckBox ? Color[ImGuiCol_Button] : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                ImGui::SetCursorPos({430.0f, 215.0f});
-                if (ImGui::Button(u8"CheckBox", {150.0f, 40.0f})) {
-                    Tab = Tab::CheckBox;
-                }
-                ImGui::PopStyleColor();
-
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                ImGui::SetCursorPos({430.0f, 265.0f});
-                if (ImGui::Button(u8"Exit", {150.0f, 40.0f})) {
-                    exit(0);
-                }
-                ImGui::PopStyleColor();
-
-                ImGui::SetCursorPos({430.0f, 330.0f});
-                ImGui::Text(u8"主题颜色");
-                ImGui::SameLine();
-                ImGui::SetCursorPos({505.0f, 328.0f});
-                ImGui::SetNextItemWidth(80.0f);
-                ImGui::Combo(u8" ", &Color_, u8"红色\0绿色\0蓝色\0橙色");
-
-                time_t t = time(0);
-                char tmp[32] = {NULL};
-                strftime(tmp, sizeof(tmp), "%Y-%m-%d %H:%M", localtime(&t));
-
-                ImGui::SetCursorPos({430.0f, 365.0f});
-                ImGui::TextColored(Color[ImGuiCol_Button], "%s", tmp);
-            }
-
-            ImGui::SetCursorPos({10.0f, 10.0f});
-            ImGui::BeginChild(u8"Fucking", {400.0f, 380.0f}, true);
-            switch (Tab) {
-                case Tab::Panel:
-                    ImGui::PushFont(Font_Big);
-                    ImGui::BulletText(u8"Panel");
-                    ImGui::PopFont();
-                    ImGui::SameLine();
-                    Helpmarker(u8"面板示例", Color[ImGuiCol_Button]);
-                    ImGui::Separator();
-                    ImGui::TextColored(Color[ImGuiCol_Button], u8"\t这种东西我没法和你解释\n因为我只是个小面板子");
-
-                    break;
-                case Tab::Button:
-                    ImGui::PushFont(Font_Big);
-                    ImGui::BulletText(u8"Button");
-                    ImGui::PopFont();
-                    ImGui::SameLine();
-                    Helpmarker(u8"按钮示例", Color[ImGuiCol_Button]);
-                    ImGui::Separator();
-
-                    ImGui::Button(u8"我是个按钮子", {120.0f, 40.0f});
-                    ImGui::Button(u8"按钮子", {70.0f, 35.0f});
-                    break;
-                case Tab::Input:
-                    ImGui::PushFont(Font_Big);
-                    ImGui::BulletText(u8"Input");
-                    ImGui::PopFont();
-                    ImGui::SameLine();
-                    Helpmarker(u8"输入示例", Color[ImGuiCol_Button]);
-                    ImGui::Separator();
-
-                    ImGui::InputInt(u8"Int类型输入", &InputInt);
-                    ImGui::InputFloat(u8"Float类型输入", &InputFloat);
-                    ImGui::InputText(u8"char[]类型输入", &InputString[80], IM_ARRAYSIZE(InputString));
-                    ImGui::SliderInt(u8"Int类型滑块", &InputInt, 0, 100);
-                    ImGui::SliderFloat(u8"Float类型滑块", &InputFloat, 0.0F, 100.0F);
-                    ImGui::Combo(u8"选择框", &Comb, u8"A11\0A22\0A33\0A44");
-                    break;
-                case Tab::CheckBox:
-                    ImGui::PushFont(Font_Big);
-                    ImGui::BulletText(u8"CheckBox");
-                    ImGui::PopFont();
-                    ImGui::SameLine();
-                    Helpmarker(u8"复选框示例", Color[ImGuiCol_Button]);
-                    ImGui::Separator();
-
-                    ImGui::Checkbox(u8"复选框-1", &CheckBox_1);
-                    ImGui::Checkbox(u8"复选框-2", &CheckBox_2);
-                    break;
-            }
-            ImGui::EndChild();
-
-            ImGui::End();
         }
 
         ImGui::Render();

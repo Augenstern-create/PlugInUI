@@ -27,5 +27,5 @@ xcopy /C /I /Y /D %ROOT_DIR%lib\curl\lib\*.dll "%BUILD_DIR%\Release"
 
 
 cd %BUILD_DIR%\Release
-"UPdate.exe"
+"PlugInUI.exe"
 cd ..\..

@@ -5,6 +5,8 @@
 #include <list>
 #include <string>
 #include <tuple>
+#include <d3d11.h>
+// #include <DirectXTex.h>
 
 #ifndef IMGUI_DISABLE
 
@@ -21,9 +23,9 @@ class Mat {
     ~Mat();
 };
 IMGUI_API Mat loadImage(const char* filename);
-IMGUI_API unsigned int LoadTexture(const char* path);
+// IMGUI_API ID3D11ShaderResourceView* LoadTexture(const char* path);
 IMGUI_API void SetButPlayerImg(unsigned int id);
-IMGUI_API void ShowMenuWindow(bool* p_open = NULL);
+IMGUI_API void ShowMenuWindow(bool* p_open = NULL, ImVec2 display_size = ImVec2(100.0f, 100.0f));
 IMGUI_API void ShowExampleAppMenu();
 IMGUI_API void ShowExampleAppPlayerInstall();
 IMGUI_API void ShowExampleAppAlternateInstall();

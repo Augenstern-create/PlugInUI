@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project(PlugInUI VERSION 1.0.0 LANGUAGES C CXX)
+project(PlugInUI VERSION 1.0.7 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -41,6 +41,7 @@ link_directories(${CMAKE_SOURCE_DIR}/lib/glfw/lib-vc2010-64)
 link_directories(${CMAKE_SOURCE_DIR}/lib/MemProcFS/lib)
 link_directories(${CMAKE_SOURCE_DIR}/lib/curl/lib)
 link_directories(${CMAKE_SOURCE_DIR}/lib/zlib/lib)
+link_directories(${CMAKE_SOURCE_DIR}/lib/imgui)
 
 # file(GLOB_RECURSE IMGUI_SRCS ${CMAKE_SOURCE_DIR}/lib/imgui/*.cpp)
 # file(GLOB_RECURSE OPENGLUI_SRCS ${CMAKE_SOURCE_DIR}/lib/imgui/backends/*.cpp)
@@ -50,11 +51,12 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/lib/imgui/backends/ OPENGLUI_SRCS)
 aux_source_directory(${CMAKE_SOURCE_DIR}/lib/glad/src/ GLAD_SRCS)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/UI/ SRC_UI_FILES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/ SRC_CPP_FILES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/src/vmm/ SRC_VMM_FILES)
 
-set(SRC_FILES ${SRC_UI_FILES} ${IMGUI_SRCS} ${OPENGLUI_SRCS} ${GLAD_SRCS} ${SRC_CPP_FILES})
+set(SRC_FILES ${SRC_UI_FILES} ${IMGUI_SRCS} ${OPENGLUI_SRCS} ${GLAD_SRCS} ${SRC_CPP_FILES} ${SRC_VMM_FILES})
 
 add_executable(${PROJECT_NAME}   ${SRC_FILES} )
-target_link_libraries(${PROJECT_NAME} glfw3 opengl32 legacy_stdio_definitions vmm leechcore libcurl)
+target_link_libraries(${PROJECT_NAME} glfw3 opengl32 legacy_stdio_definitions vmm leechcore d3d11)
 
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/ProgramUpdate/ UPDATE_SRCS)
 
