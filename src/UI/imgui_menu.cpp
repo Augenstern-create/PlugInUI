@@ -6,11 +6,8 @@
 #ifndef IMGUI_DISABLE
 #include "imgui_internal.h"
 #include <cstring>
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 #include <tuple>
+#include "imgui_module.h"
 
 namespace ImGui {
 std::vector<std::tuple<std::string, std::string, bool>> chbox_list_;
@@ -21,68 +18,8 @@ static int multilingualism_ = 1;
 static unsigned int but_player_img_id_;
 enum ToolBoxes { player, alternate };
 static ToolBoxes toolboxes_ = ToolBoxes::player;
-static ImU32 subform_color_ = IM_COL32(41, 43, 56, 128);
+
 }  // namespace ImGui
-
-ImGui::Mat::Mat() : width_(0), height_(0), channels_(0), data_(nullptr), file_name_(nullptr) {}  // 修正构造函数定义
-ImGui::Mat::Mat(const char* filename) {
-    file_name_ = filename;
-    width_ = 0;
-    height_ = 0;
-    channels_ = 0;
-    data_ = stbi_load(file_name_, &width_, &height_, &channels_, 0);
-}  // 修正构造函数定义
-ImGui::Mat::~Mat() {
-    // 在析构函数中释放内存等清理工作
-    if (data_ != nullptr) {
-        delete[] data_;
-        data_ = nullptr;
-    }
-}
-// 读取图片
-ImGui::Mat ImGui::loadImage(const char* filename) {
-    ImGui::Mat* img = new ImGui::Mat();
-    img->file_name_ = filename;
-    img->data_ = (stbi_load(filename, &img->width_, &img->height_, &img->channels_, 0));
-    return *img;
-}
-
-// ID3D11ShaderResourceView* ImGui::LoadTexture(const char* path) {
-//     int width, height, channels;
-//     unsigned char* data = stbi_load(path, &width, &height, &channels, 0);
-
-//     if (data == nullptr) {
-//         // Handle loading failure
-//         fprintf(stderr, "Failed to load image: %s\npath is: %s\n", stbi_failure_reason(), path);
-//         return nullptr;
-//     }
-
-//     DirectX::TexMetadata metadata;
-//     metadata.width = width;
-//     metadata.height = height;
-//     metadata.depth = 1;
-//     metadata.arraySize = 1;
-//     metadata.format = (channels == 4) ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8_UNORM;
-//     metadata.mipLevels = 1;
-//     metadata.dimension = DirectX::TEX_DIMENSION_TEXTURE2D;
-
-//     DirectX::ScratchImage scratchImage;
-//     scratchImage.Initialize2D(metadata.format, metadata.width, metadata.height, 1, 1);
-
-//     // Copy image data to scratchImage
-//     memcpy(scratchImage.GetPixels(), data, metadata.width * metadata.height * channels);
-
-//     // Release image data
-//     stbi_image_free(data);
-
-//     ID3D11ShaderResourceView* pTextureView;
-//     DirectX::CreateShaderResourceView(g_pd3dDevice, scratchImage.GetImages(), scratchImage.GetImageCount(), metadata,
-//                                       &pTextureView);
-
-//     return pTextureView;
-// }
-
-void ImGui::SetButPlayerImg(unsigned int id) { but_player_img_id_ = id; }
 
 typedef void (*ImGuiMenuMarkerCallback)(const char* file, int line, const char* section, void* user_data);
 extern ImGuiMenuMarkerCallback GImGuiMenuMarkerCallback;
@@ -190,195 +127,6 @@ void ImGui::ShowExampleAppMenuInitializelist() {
         std::tuple<std::string, std::string, ImVec4>(u8"材料组 3", "Materials Group 3", default_color_));
     color_picker_list_.push_back(
         std::tuple<std::string, std::string, ImVec4>(u8"材料组 4", "Materials Group 4", default_color_));
-}
-
-/// @brief 自定义Checkbox控件
-/// @param label
-/// @param value
-/// @return
-bool ImGui::RenderCustomCheckbox(const char* label, bool* value) {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if (window->SkipItems) return false;
-
-    ImGuiContext& g = *GImGui;
-    const ImGuiStyle& style = g.Style;
-    const ImGuiID id = window->GetID(label);
-
-    ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
-    const ImVec2 total_size(40, 20);
-    // 在这里根据Checkbox的状态计算位置
-    ImVec2 pos = window->DC.CursorPos;
-    pos.y += style.FramePadding.y;
-    ImGui::InvisibleButton(label, total_size);
-
-    // 在这里根据Checkbox的状态绘制图形
-    ImU32 col = ImGui::GetColorU32(*value ? ImVec4(0.4f, 0.8f, 0.2f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-
-    const float corner_radius = 10.0f;
-    const float circle_radius = total_size.y * 0.5f;
-
-    window->DrawList->AddRectFilled(pos, ImVec2(pos.x + total_size.x, pos.y + total_size.y), col, corner_radius);
-    if (!*value) {
-        window->DrawList->AddCircleFilled(ImVec2(pos.x + circle_radius, pos.y + circle_radius), circle_radius,
-                                          ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
-    } else {
-        window->DrawList->AddCircleFilled(ImVec2(pos.x + total_size.x - circle_radius, pos.y + circle_radius),
-                                          circle_radius, ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
-    }
-
-    // 在这里绘制Label
-    ImGui::RenderText(ImVec2(pos.x + total_size.x + 2, pos.y), label);
-    bool pressed = ImGui::IsItemClicked();
-    if (pressed) *value = !*value;
-    return pressed;
-}
-
-/// @brief 自定义float滑块
-/// @param label
-/// @param value
-/// @param min
-/// @param max
-/// @param format
-void ImGui::RenderCustomSlider(const char* label, float* value, float min, float max, const char* format) {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if (window->SkipItems) return;
-
-    ImGuiContext& g = *GImGui;
-    const ImGuiStyle& style = g.Style;
-    const ImGuiID id = window->GetID(label);
-
-    ImVec2 pos = window->DC.CursorPos;
-    pos.y += style.FramePadding.y;
-    ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
-    const ImVec2 total_size(100.0f, 4.0f);
-    const float corner_radius = 10.0f;
-    const float circle_radius = 8.0f;
-    const ImVec2 rect_pos(pos.x, pos.y + label_size.y + circle_radius);
-    float t = (*value - min) / (max - min);
-    // 绘制name txt
-    ImGui::RenderText(ImVec2(pos.x, pos.y), label);
-    // 绘制滑块条
-    window->DrawList->AddRectFilled(rect_pos, ImVec2(rect_pos.x + total_size.x, rect_pos.y + total_size.y),
-                                    ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)), 10.0f);
-
-    // 处理拖拽滑块的输入
-    bool is_dragging = false;
-    std::string string_name = std::string(label) + "slider";
-    ImGui::InvisibleButton(string_name.c_str(), ImVec2(total_size.x, total_size.y + label_size.y + circle_radius +
-                                                                         style.FramePadding.y * 2));
-    if (ImGui::IsItemActive()) {
-        is_dragging = true;
-        t = (g.IO.MousePos.x - rect_pos.x) / total_size.x;
-        t = ImClamp(t, 0.0f, 1.0f);
-        *value = min + (max - min) * t;
-    }
-    ImVec2 handle_pos(pos.x + t * total_size.x, pos.y + label_size.y + style.FramePadding.y + circle_radius);
-
-    // 绘制指示器
-    window->DrawList->AddCircleFilled(handle_pos, circle_radius, ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
-
-    std::string value_c = std::to_string(*value);
-    value_c = value_c.substr(0, value_c.find(".") + 3);
-    // 绘制值txt
-    ImGui::RenderText(ImVec2(rect_pos.x + total_size.x + style.FramePadding.x, rect_pos.y - circle_radius),
-                      value_c.c_str());
-    // 如果拖拽滑块结束，更新输入焦点状态
-    if (!ImGui::IsItemActive()) {
-        ImGui::SetItemAllowOverlap();
-    }
-}
-
-/// @brief 自定义int滑块
-/// @param label
-/// @param value
-/// @param min
-/// @param max
-/// @param format
-void ImGui::RenderCustomSliderint(const char* label, int* value, int min, int max, const char* format) {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if (window->SkipItems) return;
-
-    ImGuiContext& g = *GImGui;
-    const ImGuiStyle& style = g.Style;
-    const ImGuiID id = window->GetID(label);
-
-    ImVec2 pos = window->DC.CursorPos;
-    pos.y += style.FramePadding.y;
-    ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
-    const ImVec2 total_size(100.0f, 4.0f);
-    const float corner_radius = 10.0f;
-    const float circle_radius = 8.0f;
-    const ImVec2 rect_pos(pos.x, pos.y + label_size.y + circle_radius);
-    float t = (float)((float)(*value - min) / (float)(max - min));
-    // 绘制name txt
-    ImGui::RenderText(ImVec2(pos.x, pos.y), label);
-
-    // 绘制滑块条
-    window->DrawList->AddRectFilled(rect_pos, ImVec2(rect_pos.x + total_size.x, rect_pos.y + total_size.y),
-                                    ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)), 10.0f);
-
-    // 处理拖拽滑块的输入
-    bool is_dragging = false;
-    std::string string_name = std::string(label) + "slider";
-    ImGui::InvisibleButton(string_name.c_str(), ImVec2(total_size.x, total_size.y + label_size.y + circle_radius +
-                                                                         style.FramePadding.y * 2));
-    if (ImGui::IsItemActive()) {
-        is_dragging = true;
-        t = (g.IO.MousePos.x - rect_pos.x) / total_size.x;
-        t = ImClamp(t, 0.0f, 1.0f);
-        *value = static_cast<int>(min + (int)((float)(max - min) * t));
-    }
-    ImVec2 handle_pos(pos.x + t * total_size.x, pos.y + label_size.y + style.FramePadding.y + circle_radius);
-
-    // 绘制指示器
-    window->DrawList->AddCircleFilled(handle_pos, circle_radius, ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
-
-    std::string value_c = std::to_string(*value);
-    // 绘制值txt
-    ImGui::RenderText(ImVec2(rect_pos.x + total_size.x + style.FramePadding.x, rect_pos.y - circle_radius),
-                      value_c.c_str());
-    // 如果拖拽滑块结束，更新输入焦点状态
-    if (!ImGui::IsItemActive()) {
-        ImGui::SetItemAllowOverlap();
-    }
-}
-
-ImVec2 ImGui::ImVec2ADD(const ImVec2 a, const ImVec2 b) { return ImVec2(a.x + b.x, a.y + b.y); }
-ImVec2 ImGui::ImVec2Decrease(const ImVec2 a, const ImVec2 b) { return ImVec2(a.x - b.x, a.y - b.y); }
-ImVec2 ImGui::ImVec2Multiply(const ImVec2 a, float b) { return ImVec2(a.x * b, a.y * b); }
-bool ImGui::RenderCustomButton(const char* str_id, ImTextureID user_texture_id, const ImVec2& size,
-                               const ImVec4& bg_col, const ImVec4& tint_col, const ImU32 col, const ImVec2& uv0,
-                               const ImVec2& uv1, ImGuiButtonFlags flags) {
-    ImGuiContext& g = *GImGui;
-    ImGuiWindow* window = g.CurrentWindow;
-    if (window->SkipItems) return false;
-
-    ImGuiID id = window->GetID(str_id);
-
-    const ImVec2 padding = g.Style.FramePadding;
-    const ImVec2 cursor_pos = window->DC.CursorPos;
-    const ImRect bb(cursor_pos, ImVec2ADD(cursor_pos, ImVec2ADD(size, ImVec2Multiply(padding, 2.0f))));
-    ItemSize(bb);
-    if (!ItemAdd(bb, id)) return false;
-
-    bool hovered, held;
-    bool pressed = ButtonBehavior(bb, id, &hovered, &held, flags);
-    RenderNavHighlight(bb, id);
-    RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, g.Style.FrameRounding));
-    if (bg_col.w > 0.0f)
-        window->DrawList->AddRectFilled(ImVec2ADD(bb.Min, padding), ImVec2Decrease(bb.Max, padding),
-                                        GetColorU32(bg_col));
-    window->DrawList->AddImage(user_texture_id, ImVec2ADD(bb.Min, padding), ImVec2Decrease(bb.Max, padding), uv0, uv1,
-                               GetColorU32(tint_col));
-
-    return pressed;
-}
-
-void ImGui::RenderRoundedRect(ImDrawList* drawList, ImVec2 pMin, ImVec2 pMax, float rounding, ImU32 borderColor,
-                              float borderSize) {
-    drawList->AddRectFilled(pMin, pMax, subform_color_, rounding);
-
-    if (borderSize > 0) drawList->AddRect(pMin, pMax, borderColor, ImDrawFlags_RoundCornersAll, borderSize);
 }
 
 void ImGui::SubFormComfig1(const char* name, float width, float height,
@@ -541,6 +289,7 @@ void ImGui::ShowMenuWindow(bool* p_open, ImVec2 display_size) {
     ImGuiWindowFlags window_flags = 0;
     ImGui::SetNextWindowPos({display_size.x / 6, display_size.y / 6}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(display_size.x * 2 / 3, display_size.y * 2 / 3), ImGuiCond_FirstUseEver);
+
     if (!ImGui::Begin("Windows Menu", p_open, window_flags)) {
         ImGui::End();
         return;
@@ -560,5 +309,7 @@ void ImGui::ShowMenuWindow(bool* p_open, ImVec2 display_size) {
     SubFormSecondaryMenu(from_menu2.x, from_menu2.y);
     SubFormFunctionBlock(from_menu3.x, from_menu3.y);
     ImGui::Columns(1);
+    ImGui::End();
 }
+
 #endif  // #ifndef IMGUI_DISABLE

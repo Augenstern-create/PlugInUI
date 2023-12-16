@@ -1,0 +1,9 @@
+#pragma once
+// game
+#include "game/Bone.h"
+#include "game/Constant.h"
+#include "game/Data.h"
+#include "game/Engine.h"
+#include "game/Entitys.h"
+#include "game/offset.h"
+#include "game/Vector.h"

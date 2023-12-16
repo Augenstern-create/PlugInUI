@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.9)
 project(PlugInUI VERSION 1.0.7 LANGUAGES C CXX)
 
+
+option(UPDATE_EXE "Whether to start the upgrade program" OFF)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -25,43 +28,38 @@ else()
 endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/config/version.h.in ${CMAKE_SOURCE_DIR}/include/version.h)
-
-
 include_directories(${CMAKE_SOURCE_DIR}/include/)
-include_directories(${CMAKE_SOURCE_DIR}/lib/glfw/include/)
-include_directories(${CMAKE_SOURCE_DIR}/lib/glad/include/)
-include_directories(${CMAKE_SOURCE_DIR}/lib/stb_image/)
-include_directories(${CMAKE_SOURCE_DIR}/lib/imgui/)
-include_directories(${CMAKE_SOURCE_DIR}/lib/imgui/backends/)
+include_directories(${CMAKE_SOURCE_DIR}/src/)
 include_directories(${CMAKE_SOURCE_DIR}/lib/MemProcFS/include/)
-include_directories(${CMAKE_SOURCE_DIR}/lib/curl/include/)
-include_directories(${CMAKE_SOURCE_DIR}/lib/zlib/include/)
-link_directories(${CMAKE_SOURCE_DIR}/lib)
-link_directories(${CMAKE_SOURCE_DIR}/lib/glfw/lib-vc2010-64)
-link_directories(${CMAKE_SOURCE_DIR}/lib/MemProcFS/lib)
-link_directories(${CMAKE_SOURCE_DIR}/lib/curl/lib)
-link_directories(${CMAKE_SOURCE_DIR}/lib/zlib/lib)
-link_directories(${CMAKE_SOURCE_DIR}/lib/imgui)
+include_directories(${CMAKE_SOURCE_DIR}/lib/stb_image/)
+include_directories(${CMAKE_SOURCE_DIR}/lib/ImGui/)
 
-# file(GLOB_RECURSE IMGUI_SRCS ${CMAKE_SOURCE_DIR}/lib/imgui/*.cpp)
-# file(GLOB_RECURSE OPENGLUI_SRCS ${CMAKE_SOURCE_DIR}/lib/imgui/backends/*.cpp)
-
-aux_source_directory(${CMAKE_SOURCE_DIR}/lib/imgui/ IMGUI_SRCS)
-aux_source_directory(${CMAKE_SOURCE_DIR}/lib/imgui/backends/ OPENGLUI_SRCS)
-aux_source_directory(${CMAKE_SOURCE_DIR}/lib/glad/src/ GLAD_SRCS)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/UI/ SRC_UI_FILES)
-aux_source_directory(${CMAKE_SOURCE_DIR}/src/ SRC_CPP_FILES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/src/game/ SRC_GAME_FILES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/vmm/ SRC_VMM_FILES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/src/ue4math/ SRC_UE4MATH_FILES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/src/utils/ SRC_UTILS_FILES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/lib/ImGui/ SRC_IMGUI_FILES)
 
-set(SRC_FILES ${SRC_UI_FILES} ${IMGUI_SRCS} ${OPENGLUI_SRCS} ${GLAD_SRCS} ${SRC_CPP_FILES} ${SRC_VMM_FILES})
+link_directories(${CMAKE_SOURCE_DIR}/lib)
+link_directories(${CMAKE_SOURCE_DIR}/lib/MemProcFS/lib)
+link_directories(${CMAKE_SOURCE_DIR}/lib/ImGui)
+
+
+set(SRC_FILES  ${SRC_IMGUI_FILES} ${SRC_GAME_FILES} ${SRC_UTILS_FILES} ${SRC_UE4MATH_FILES}  ${SRC_UI_FILES} ${SRC_VMM_FILES})
 
 add_executable(${PROJECT_NAME}   ${SRC_FILES} )
-target_link_libraries(${PROJECT_NAME} glfw3 opengl32 legacy_stdio_definitions vmm leechcore d3d11)
+target_link_libraries(${PROJECT_NAME}  legacy_stdio_definitions vmm leechcore d3d11 DirectXTex)
 
+if(UPDATE_EXE)
+include_directories(${CMAKE_SOURCE_DIR}/lib/zlib/include/)
+link_directories(${CMAKE_SOURCE_DIR}/lib/zlib/lib)
+include_directories(${CMAKE_SOURCE_DIR}/lib/curl/include/)
+link_directories(${CMAKE_SOURCE_DIR}/lib/curl/lib)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/ProgramUpdate/ UPDATE_SRCS)
-
 add_executable(UPdate   ${UPDATE_SRCS} )
 target_link_libraries(UPdate libcurl bzip2 libminizip)
+endif()
 
 
 

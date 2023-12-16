@@ -20,6 +20,11 @@ cmake -A x64 ^
 
 cmake --build . --config Release -j8
 
+if %errorlevel% neq 0 (
+    echo CMake build failed.
+    exit /b %errorlevel%
+)
+
 xcopy /E /I /Y /D %ROOT_DIR%config %BUILD_DIR%\Release
 xcopy /E /I /Y /S /D %ROOT_DIR%photograph %BUILD_DIR%\Release\photograph
 xcopy /C /I /Y /D %ROOT_DIR%lib\MemProcFS\lib\*.dll "%BUILD_DIR%\Release" 
