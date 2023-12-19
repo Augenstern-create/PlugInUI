@@ -15,24 +15,23 @@ int Refresh() {
     int refreshCounter = 0;
 
     while (true) {
-        VmmCore::Refresh();
-
-        if (gameData.Scene != Scene::Gameing) {
-            VmmCore::Clear();
-            VmmCore::RefreshAll();
-        } else {
-            /*refreshCounter++;
-            if (refreshCounter >= 60)
-            {
-                Drive::RefreshFast();
+        if (gameData.Scene == Scene::Lobby) {
+            refreshCounter++;
+            if (refreshCounter >= 120) {
                 refreshCounter = 0;
-            }*/
+                VmmCore::Clear();
+                VmmCore::RefreshAll();
+            }
+
+        } else if (gameData.Scene == Scene::Gameing) {
+            VmmCore::Refresh();
         }
 
-        Sleep(1000);
+        Sleep(500);
     }
 }
 void init() {
+    gameData.Radar.ZoomFactor = 1.0f;
     // gameData.Map.ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
     // gameData.Map.ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
     // gameData.Map.ScreenCenter = {gameData.Map.ScreenWidth * 0.5f, gameData.Map.ScreenHeight * 0.5f};
@@ -42,19 +41,19 @@ void init() {
 int main(int, char**) {
     std::cout << "Version : " << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH
               << std::endl;
-    SetConsoleOutputCP(CP_UTF8);
+    // SetConsoleOutputCP(CP_UTF8);
     init();
-    if (!VmmCore::Initialize()) {
-        Utils::Log(2, "Initialization failure.");
-        return -1;
-    } else {
-        std::thread hackThread(HackStart);
-        // std::thread refreshThread(Refresh);
-        // hackThread.join();
-
-        hackThread.detach();
-    }
-    std::cout << "Initializing Imgui" << std::endl;
+    // if (!VmmCore::Initialize()) {
+    //     Utils::Log(2, "Initialization failure.");
+    //     return -1;
+    // } else {
+    //     std::thread hackThread(HackStart);
+    //     // hackThread.join();
+    //     hackThread.detach();
+    //     std::thread refreshThread(Refresh);
+    //     refreshThread.detach();
+    // }
+    // std::cout << "Initializing Imgui" << std::endl;
     UIPlay();
     exit(0);
     return 0;

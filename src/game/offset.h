@@ -3,18 +3,19 @@
 
 namespace Offset {
 // world
-constexpr uintptr_t UWorld = 0x9D80918;        // 游戏世界偏移
-constexpr uint32_t CurrentLevel = 0x0158;      // 当前关卡偏移
-constexpr uint32_t GameInstance = 0x0160;      // 游戏实例偏移
-constexpr uint32_t GameState = 0x0118;         // 游戏状态偏移
-constexpr uint32_t LocalPlayer = 0x0038;       // 本地玩家信息偏移
-constexpr uint32_t PlayerController = 0x0038;  // 玩家控制器偏移
-constexpr uint32_t Actor = 0x01E8;             // 游戏中角色偏移
-constexpr uint32_t ActorArray = 0x01E8;        // 角色数组偏移
-constexpr uintptr_t GNames = 0x09F8CB48;       // 游戏中使用的名称地址
-constexpr uint32_t MyHUD = 0x0498;             // 本地玩家 HUD 偏移
-constexpr uint32_t ObjID = 0x0010;             // 对象 ID 偏移
-constexpr uint32_t PlayerCameraManager = 0x04A0;
+constexpr uintptr_t UWorld = 0x9D80918;           // 游戏世界偏移
+constexpr uint32_t CurrentLevel = 0x0158;         // 当前关卡偏移
+constexpr uint32_t GameInstance = 0x0160;         // 游戏实例偏移
+constexpr uint32_t GameState = 0x0118;            // 游戏状态偏移
+constexpr uint32_t LocalPlayer = 0x0038;          // 本地玩家信息偏移
+constexpr uint32_t PlayerController = 0x0038;     // 玩家控制器偏移
+constexpr uint32_t Actor = 0x01E8;                // 游戏中角色偏移
+constexpr uint32_t ActorArray = 0x01E8;           // 角色数组偏移
+constexpr uintptr_t GNames = 0x09F8CB48;          // 游戏中使用的名称地址
+constexpr uint32_t ObjID = 0x0010;                // 对象 ID 偏移
+constexpr uint32_t AcknowledgedPawn = 0x0480;     // 本人组地址
+constexpr uint32_t PlayerCameraManager = 0x04A0;  // 相机地址
+constexpr uint32_t ViewTarget = 0x1650;           // 当前镜头
 
 // Decrypt
 constexpr uintptr_t Decrypt = 0x0862E328;  // 用于解密操作偏移
@@ -34,7 +35,6 @@ constexpr uint32_t AccountId = 0x0A60;           // 玩家账户 ID 偏移
 constexpr uint32_t PlayerTeamId = 0x0A84;        // 玩家所在队伍 ID 偏移
 constexpr uint32_t PubgIdData = 0x0E60;          // PUBG ID 数据偏移
 constexpr uint32_t RootComponent = 0x01B0;       // 玩家根组件偏移
-constexpr uint32_t Mesh = 0x04B8;                // 玩家模型偏移
 constexpr uint32_t PlayerState = 0x0428;         // 玩家状态偏移
 constexpr uint32_t TeamNumber = 0x0A84;          // 玩家所在队伍编号偏移
 constexpr uint32_t CharacterName = 0x1C60;       // 角色名字偏移
@@ -68,14 +68,20 @@ constexpr uint32_t LayoutData = 0x0040;
 constexpr uint32_t Alignment = 0x0020;
 constexpr uint32_t BlockInputWidgetList = 0x0560;
 
+// Myself
+constexpr uint32_t VehicleRiderComponent = 0x1F80;
+constexpr uint32_t Mesh = 0x04B8;  // 玩家模型偏移
+constexpr uint32_t AnimScriptInstance = 0x0C60;
+constexpr uint32_t Playname = 0x1C60;
+constexpr uint32_t SeatIndex = 0x0230;
+constexpr uint32_t LastTeamNum = 0x1CD0;
+
 //
 constexpr uint32_t IsABot = 0x44c;        //
 constexpr uint32_t IsSpectator = 0x410;   //
 constexpr uint32_t AlivePlayers = 0x498;  //
 constexpr uint32_t AliveTeams = 0x4DC;    //
-constexpr uint32_t AcknowledgedPawn = 0x0488;
 
-constexpr uint32_t ViewTarget = 0x1050;
 constexpr uint32_t CharacterClanInfo = 0x0C28;
 constexpr uint32_t HealthMax = 0x09BC;
 constexpr uint32_t GroggyHealthMax = 0x12B8;
@@ -85,12 +91,12 @@ constexpr uint32_t TrajectoryConfig = 0x0108;
 constexpr uint32_t BallisticCurve = 0x0028;
 constexpr uint32_t FloatCurves = 0x0038;
 constexpr uint32_t Keys = 0x60;
-constexpr uint32_t VehicleRiderComponent = 0x1DC0;
+
 constexpr uint32_t LastVehiclePawn = 0x0270;
 constexpr uint32_t ReplicatedMovement = 0x0060;
-constexpr uint32_t SeatIndex = 0x0230;
+
 constexpr uint32_t Veloctity = 0x3D0;
-constexpr uint32_t AnimScriptInstance = 0x0C70;
+
 constexpr uint32_t ControlRotation_CP = 0x07FC;
 constexpr uint32_t RecoilADSRotation_CP = 0x09FC;
 constexpr uint32_t ComponentVelocity = 0x0234;

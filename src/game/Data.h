@@ -12,6 +12,7 @@
 #include "Engine.h"
 #include "SrcUe4Math.h"
 #include "srcUtils.h"
+#include "imgui.h"
 
 struct PlayerInfo {
     EntityType Type;                 // 实体类型
@@ -22,9 +23,9 @@ struct PlayerInfo {
     std::string Name;                // 角色名称字符串  ///
     Vector3 Location;                // 位置           ///
     Vector3 AimOffsets;              // 朝向           ///
-    int TeamID;                      // 队伍ID
-    float Health;                    // 生命值
-    float GroggyHealth;              // 濒死状态生命值
+    int TeamID;                      // 队伍ID //
+    float Health;                    // 生命值//
+    float GroggyHealth;              // 濒死状态生命值//
     float Distance;                  // 与玩家的距离
     bool IsMyTeam;                   // 是否为我方队伍
     DWORD_PTR RootComponent;         // 根组件指针
@@ -33,20 +34,20 @@ struct PlayerInfo {
     DWORD_PTR BoneComponent;         // 骨骼组件指针
     DWORD_PTR StaticMesh;            // 静态网格指针
     FTransform ComponentToWorld;     // 组件到世界的转换
-    int KillCount;                   // 击杀数
-    int SurvivalTier;                // 生存阶层
-    int SurvivalLevel;               // 生存等级
-    EPartnerLevel PartnerLevel;      // 伙伴等级
-    float DamageDealtOnEnemy;        // 对敌人造成的伤害
-    ECharacterState CharacterState;  // 角色状态
-    int SpectatedCount;              // 观察次数
+    int KillCount;                   // 击杀数//
+    int SurvivalTier;                // 生存阶层//
+    int SurvivalLevel;               // 生存等级//
+    EPartnerLevel PartnerLevel;      // 伙伴等级//
+    float DamageDealtOnEnemy;        // 对敌人造成的伤害//
+    ECharacterState CharacterState;  // 角色状态//
+    int SpectatedCount;              // 观察次数//
     DWORD_PTR WeaponProcessor;       // 武器处理器指针
     DWORD_PTR EquippedWeapons;       // 装备的武器指针
     BYTE CurrentWeaponIndex;         // 当前武器索引
     DWORD_PTR CurrentWeapon;         // 当前武器指针
     DWORD_PTR EncryptWeaponID;       // 加密武器ID指针
-    int WeaponID;                    // 武器ID
-    std::string WeaponName;          // 武器名称
+    int WeaponID;                    // 武器ID//
+    std::string WeaponName;          // 武器名称//
 
     struct {
         std::unordered_map<int, FTransform> Bones;       // 骨骼的变换信息
@@ -140,6 +141,8 @@ struct GameData {
     DWORD_PTR Actor;             // 参与者
     DWORD_PTR ActorArray;        // 参与者数组
     DWORD_PTR MyHUD;
+    DWORD_PTR AcknowledgedPawn;     // 本人地址
+    DWORD_PTR PlayerCameraManager;  // 相机地址
 
     Scene Scene = Scene::FindProcess;  // 场景
     int PlayerCount;                   // 玩家人数
@@ -147,7 +150,16 @@ struct GameData {
     DWORD_PTR LocalPlayerPawn;         // 当前玩家位置
     DWORD_PTR LocalPlayerTeamID;       // 当前玩家队名
     DWORD_PTR LocalPlayerMesh;         // 当前玩家区域
-    DWORD_PTR PlayerCameraManager;     // 当前玩家镜头
+    struct {
+        DWORD_PTR PlayerPtr;
+        std::string Name;
+        std::string ClanName;
+        int TeamID;
+        DWORD_PTR Mesh;        //
+        DWORD_PTR AnimScript;  //
+        Vector3 Location;      // 位置
+
+    } Myself;
 
     float FOV;         // 视角
     Vector3 Location;  // 地点
@@ -231,6 +243,11 @@ struct GameData {
             bool KDA = false;             // 击败比例显示
             bool Rank = false;            // 排名显示
         } ESP;
+        struct {
+            ImU32 PlayerTeamCol = IM_COL32(60, 255, 60, 255);  // 玩家队伍颜色
+            ImU32 EnemyTeamCol = IM_COL32(255, 60, 60, 255);   // 敌人队伍颜色
+            ImU32 VehicleCol = IM_COL32(255, 255, 60, 255);    // 载具颜色
+        } color;
     } Config;
 };
 

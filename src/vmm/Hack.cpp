@@ -202,22 +202,6 @@ void UpdateProjects() {
     // gameData.Actors.Projects = items;
 }
 
-void UpdateCamera() {
-    float FOV;
-    Vector3 Location;
-    Vector3 Rotation;
-
-    VmmCore::ScatterReadEx(2, gameData.PlayerCameraManager + Offset::FOV, (float*)&FOV);
-    VmmCore::ScatterReadEx(2, gameData.PlayerCameraManager + Offset::Location, (Vector3*)&Location);
-    VmmCore::ScatterReadEx(2, gameData.PlayerCameraManager + Offset::Rotation, (Vector3*)&Rotation);
-
-    VmmCore::ScatterExecuteReadEx(2);
-
-    gameData.FOV = FOV;
-    gameData.Location = Location;
-    gameData.Rotation = Rotation;
-}
-
 void UpdatePlayers() {
     // while (gameData.Scene == Scene::Gameing) {
     //     // Timer timer("UpdatePlayers");
@@ -522,13 +506,18 @@ void UpdateAddress() {
                 VmmCore::ReadValue<DWORD_PTR>(gameData.GameInstance + Offset::LocalPlayer)));
             gameData.PlayerController =
                 Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.LocalPlayer + Offset::PlayerController));
+
+            gameData.AcknowledgedPawn =
+                Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::AcknowledgedPawn));
+
             gameData.PlayerCameraManager =
                 VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::PlayerCameraManager);
-            gameData.MyHUD = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::MyHUD);
+
+            gameData.MyHUD = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerCameraManager + Offset::ViewTarget);
+
             gameData.Map.WorldOriginLocation =
                 Vector3(VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap),
                         VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap + 4), 0);
-            // gameData.MapZoomValue = VmmCore::ScatterReadEx(0, gameData.Actor + 0x8, (int*)&gameData.ActorCount);
             UpdateGameScene();
         }
     }
@@ -625,6 +614,22 @@ void UpdateEntitys2() {
     }
 }
 
+void UpdateCamera() {
+    float FOV;
+    Vector3 Location;
+    Vector3 Rotation;
+
+    VmmCore::ScatterReadEx(2, gameData.PlayerCameraManager + Offset::FOV, (float*)&FOV);
+    VmmCore::ScatterReadEx(2, gameData.PlayerCameraManager + Offset::Location, (Vector3*)&Location);
+    VmmCore::ScatterReadEx(2, gameData.PlayerCameraManager + Offset::Rotation, (Vector3*)&Rotation);
+
+    VmmCore::ScatterExecuteReadEx(2);
+
+    gameData.FOV = FOV;
+    gameData.Location = Location;
+    gameData.Rotation = Rotation;
+}
+
 void UpdatePlayers2() {
     while (gameData.Scene == Scene::Gameing) {
         std::vector<PlayerInfo> players = Data::GetCachePlayers();
@@ -634,83 +639,75 @@ void UpdatePlayers2() {
             VmmCore::ScatterReadEx(2, player.Entity + Offset::CharacterName, (DWORD_PTR*)&player.pCharacterName);
             VmmCore::ScatterReadEx(2, player.Entity + Offset::Mesh, (DWORD_PTR*)&player.MeshComponent);
             VmmCore::ScatterReadEx(2, player.Entity + Offset::AimOffsets, (Vector3*)&player.AimOffsets);
-            // VmmCore::ScatterReadEx(2, player.Entity + Offset::RootComponent, (DWORD_PTR*)&player.RootComponent);
-
-            // VmmCore::ScatterReadEx(2, player.Entity + Offset::PlayerState, (DWORD_PTR*)&player.PlayerState);
-            // VmmCore::ScatterReadEx(2, player.Entity + Offset::TeamNumber, (int*)&player.TeamID);
-
-            // VmmCore::ScatterReadEx(2, player.Entity + Offset::Health, (float*)&player.Health);
-            // VmmCore::ScatterReadEx(2, player.Entity + Offset::GroggyHealth, (float*)&player.GroggyHealth);
-
-            // VmmCore::ScatterReadEx(2, player.Entity + Offset::CharacterState,
-            // (ECharacterState*)&player.CharacterState); VmmCore::ScatterReadEx(2, player.Entity +
-            // Offset::SpectatedCount, (int*)&player.SpectatedCount);
-
-            // VmmCore::ScatterReadEx(2, player.Entity + Offset::WeaponProcessor, (DWORD_PTR*)&player.WeaponProcessor);
+            VmmCore::ScatterReadEx(2, player.Entity + Offset::LastTeamNum, (int*)&player.TeamID);
+            VmmCore::ScatterReadEx(2, player.Entity + Offset::Health, (float*)&player.Health);
+            VmmCore::ScatterReadEx(2, player.Entity + Offset::GroggyHealth, (float*)&player.GroggyHealth);
+            VmmCore::ScatterReadEx(2, player.Entity + Offset::PlayerState, (DWORD_PTR*)&player.PlayerState);
+            VmmCore::ScatterReadEx(2, player.Entity + Offset::CharacterState, (ECharacterState*)&player.CharacterState);
+            VmmCore::ScatterReadEx(2, player.Entity + Offset::SpectatedCount, (int*)&player.SpectatedCount);
+            VmmCore::ScatterReadEx(2, player.Entity + Offset::WeaponProcessor, (DWORD_PTR*)&player.WeaponProcessor);
         }
 
         VmmCore::ScatterExecuteReadEx(2);
 
         for (PlayerInfo& player : players) {
+            player.PlayerState = Decrypt::Xe(player.PlayerState);
+
             VmmCore::ScatterReadEx(2, player.pCharacterName, (FText*)&player.CharacterName);
             VmmCore::ScatterReadEx(2, player.MeshComponent + Offset::ComponentLocation, (Vector3*)&player.Location);
-            // player.RootComponent = Decrypt::Xe(player.RootComponent);
-            // player.PlayerState = Decrypt::Xe(player.PlayerState);
+            VmmCore::ScatterReadEx(2, player.PlayerState + Offset::PlayerSatisitc, (int*)&player.KillCount);
+            VmmCore::ScatterReadEx(2, player.PlayerState + Offset::SurvivalTier, (int*)&player.SurvivalTier);
+            VmmCore::ScatterReadEx(2, player.PlayerState + Offset::SurvivalLevel, (int*)&player.SurvivalLevel);
+            VmmCore::ScatterReadEx(2, player.PlayerState + Offset::PartnerLevel, (EPartnerLevel*)&player.PartnerLevel);
+            VmmCore::ScatterReadEx(2, player.PlayerState + Offset::DamageDealtOnEnemy,
+                                   (float*)&player.DamageDealtOnEnemy);
 
             // VmmCore::ScatterReadEx(2, player.MeshComponent + Offset::ComponentToWorld,
             //                        (FTransform*)&player.ComponentToWorld);
             // VmmCore::ScatterReadEx(2, player.MeshComponent + Offset::StaticMesh, (DWORD_PTR*)&player.StaticMesh);
 
-            // VmmCore::ScatterReadEx(2, player.PlayerState + Offset::PlayerSatisitc, (int*)&player.KillCount);
-            // VmmCore::ScatterReadEx(2, player.PlayerState + Offset::DamageDealtOnEnemy,
-            //                        (float*)&player.DamageDealtOnEnemy);
-            // VmmCore::ScatterReadEx(2, player.PlayerState + Offset::SurvivalTier, (int*)&player.SurvivalTier);
-            // VmmCore::ScatterReadEx(2, player.PlayerState + Offset::SurvivalLevel, (int*)&player.SurvivalLevel);
-            // VmmCore::ScatterReadEx(2, player.PlayerState + Offset::PartnerLevel,
-            // (EPartnerLevel*)&player.PartnerLevel);
-
-            // VmmCore::ScatterReadEx(2, player.WeaponProcessor + Offset::EquippedWeapons,
-            //                        (DWORD_PTR*)&player.EquippedWeapons);
-            // VmmCore::ScatterReadEx(2, player.WeaponProcessor + Offset::CurrentWeaponIndex,
-            //                        (BYTE*)&player.CurrentWeaponIndex);
+            VmmCore::ScatterReadEx(2, player.WeaponProcessor + Offset::EquippedWeapons,
+                                   (DWORD_PTR*)&player.EquippedWeapons);
+            VmmCore::ScatterReadEx(2, player.WeaponProcessor + Offset::CurrentWeaponIndex,
+                                   (BYTE*)&player.CurrentWeaponIndex);
         }
 
         VmmCore::ScatterExecuteReadEx(2);
 
-        // for (PlayerInfo& player : players) {
-        //     if (player.CurrentWeaponIndex >= 0 && player.CurrentWeaponIndex < 8) {
-        //         VmmCore::ScatterReadEx(2, player.EquippedWeapons + player.CurrentWeaponIndex * 8,
-        //                                (DWORD_PTR*)&player.CurrentWeapon);
-        //     }
-        // }
+        for (PlayerInfo& player : players) {
+            if (player.CurrentWeaponIndex >= 0 && player.CurrentWeaponIndex < 8) {
+                VmmCore::ScatterReadEx(2, player.EquippedWeapons + player.CurrentWeaponIndex * 8,
+                                       (DWORD_PTR*)&player.CurrentWeapon);
+            }
+        }
 
-        // VmmCore::ScatterExecuteReadEx(2);
+        VmmCore::ScatterExecuteReadEx(2);
 
-        // for (PlayerInfo& player : players) {
-        //     if (player.CurrentWeapon > 0) {
-        //         VmmCore::ScatterReadEx(2, player.CurrentWeapon + Offset::ObjID, (int*)&player.WeaponID);
-        //     }
+        for (PlayerInfo& player : players) {
+            if (player.CurrentWeapon > 0) {
+                VmmCore::ScatterReadEx(2, player.CurrentWeapon + Offset::ObjID, (int*)&player.WeaponID);
+            }
 
-        //     for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
-        //         VmmCore::ScatterReadEx(2, player.StaticMesh + (bone * sizeof(FTransform)),
-        //                                (FTransform*)&player.Skeleton.Bones[bone]);
-        //     }
-        // }
+            // for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
+            //     VmmCore::ScatterReadEx(2, player.StaticMesh + (bone * sizeof(FTransform)),
+            //                            (FTransform*)&player.Skeleton.Bones[bone]);
+            // }
+        }
 
-        // VmmCore::ScatterExecuteReadEx(2);
+        VmmCore::ScatterExecuteReadEx(2);
 
-        // if (!gameData.AimBot.Lock) {
-        //     gameData.AimBot.TargetEntity = 0;
-        //     gameData.AimBot.ScreenDistance = 1000.0f;
-        // }
+        if (!gameData.AimBot.Lock) {
+            gameData.AimBot.TargetEntity = 0;
+            gameData.AimBot.ScreenDistance = 1000.0f;
+        }
 
         // UpdateCamera();
 
         for (PlayerInfo& player : players) {
             // auto AimOffsets = VmmCore::BatchRead<std::vector<FRotator>>(playerEntitys, Offset::AimOffsets, 2);
-            // player.WeaponID = Decrypt::CIndex(player.WeaponID);
+            player.WeaponID = Decrypt::CIndex(player.WeaponID);
 
-            // player.WeaponName = findEntityInfoByID(player.WeaponID).DisplayName;
+            player.WeaponName = findEntityInfoByID(player.WeaponID).DisplayName;
 
             // for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
             //     player.Skeleton.LocationBones[bone] =
@@ -718,12 +715,17 @@ void UpdatePlayers2() {
             //     player.Skeleton.ScreenBones[bone] = VectorHelper::WorldToScreen(player.Skeleton.LocationBones[bone]);
             // }
 
-            // if (player.TeamID >= 100000) {
-            //     player.TeamID = player.TeamID - 100000;
-            // }
+            if (player.TeamID >= 100000) {
+                player.TeamID = player.TeamID - 100000;
+            }
             // player.Distance = gameData.Location.Distance(player.Location) / 100.0f;
-            // player.IsMyTeam = player.TeamID == gameData.LocalPlayerTeamID;
+            player.IsMyTeam = player.TeamID == gameData.Myself.TeamID;
             player.Name = Utils::UnicodeToAnsi(player.CharacterName.buffer);
+            if (player.Name == gameData.Myself.Name || player.Entity == gameData.Myself.PlayerPtr) {
+                gameData.Myself.PlayerPtr = player.Entity;
+                gameData.Myself.Location = player.Location;
+            }
+            player.Distance = gameData.Myself.Location.Distance(player.Location) / 100.0f;
 
             // if (player.SurvivalTier > 0) player.SurvivalLevel = (player.SurvivalTier - 1) * 500 +
             // player.SurvivalLevel;
@@ -744,8 +746,8 @@ void UpdatePlayers2() {
             // }
         }
 
-        // std::sort(players.begin(), players.end(),
-        //           [](const PlayerInfo& a, const PlayerInfo& b) { return a.Distance > b.Distance; });
+        std::sort(players.begin(), players.end(),
+                  [](const PlayerInfo& a, const PlayerInfo& b) { return a.Distance > b.Distance; });
 
         Data::SetPlayers(players);
     }
@@ -847,60 +849,42 @@ void UpdateItem() {
     // }();
 }
 
+bool JudgeOneself() {
+    int is = VmmCore::ReadValue<int>(VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::VehicleRiderComponent) +
+                                     Offset::SeatIndex);
+    if (is == -1 || is == 1 || is == 2 || is == 3 || is == 4 || is == 5) {
+        return true;
+    }
+    return false;
+}
+std::string AnalyzeClanName(std::string Name) {
+    std::string ClanName = "";
+    size_t startPos = Name.find("[");
+    if (startPos != std::string::npos) {
+        size_t endPos = Name.find("]", startPos);
+        if (endPos != std::string::npos) {
+            ClanName = Name.substr(startPos + 1, endPos - startPos - 1);
+        }
+    }
+    return ClanName;
+}
+
 void UpdateGameingDate() {
     while (true) {
-        if (gameData.PID > 0) {
-            if (gameData.Scene == Scene::Gameing) {
-                gameData.PlayerCount = VmmCore::ReadValue<int>(gameData.GameState + Offset::PlayerArray + 0x8);
-
-                std::vector<GamePlayerInfo> playerLists;
-                DWORD_PTR* playerArrayBuffer = new DWORD_PTR[gameData.PlayerCount];
-                VmmCore::ReadByte(VmmCore::ReadValue<DWORD_PTR>(gameData.GameState + Offset::PlayerArray),
-                                  playerArrayBuffer, sizeof(DWORD_PTR) * gameData.PlayerCount);
-
-                std::vector<DWORD_PTR> playerArray(playerArrayBuffer, playerArrayBuffer + gameData.PlayerCount);
-
-                for (auto& pPlayerInfo : playerArray) {
-                    GamePlayerInfo player;
-                    player.pPlayerInfo = pPlayerInfo;
-                    playerLists.push_back(player);
-                }
-
-                for (GamePlayerInfo& player : playerLists) {
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + Offset::PlayerName, (DWORD_PTR*)&player.pPlayerName);
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + Offset::AccountId, (DWORD_PTR*)&player.pAccountId);
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + Offset::PlayerTeamId, (int*)&player.TeamID);
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + Offset::PartnerLevel,
-                                           (EPartnerLevel*)&player.PartnerLevel);
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + Offset::PubgIdData,
-                                           (FWuPubgIdData*)&player.PubgIdData);
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + Offset::PubgIdData, (DWORD_PTR*)&player.pPubgIdData);
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + 0x0410, (int*)&player.E);
-                }
-                VmmCore::ScatterExecuteReadEx(3);
-                for (GamePlayerInfo& player : playerLists) {
-                    VmmCore::ScatterReadEx(3, player.pPlayerName, (FText*)&player.FPlayerName);
-                    VmmCore::ScatterReadEx(3, player.pAccountId, (FText*)&player.FAccountId);
-                    VmmCore::ScatterReadEx(3, player.pPlayerInfo + 0x0A90 + 0x0020, (DWORD_PTR*)&player.pClanName);
-                }
-
-                VmmCore::ScatterExecuteReadEx(3);
-
-                for (GamePlayerInfo& player : playerLists) {
-                    VmmCore::ScatterReadEx(3, player.pClanName, (FText*)&player.FClanName);
-                }
-                VmmCore::ScatterExecuteReadEx(3);
-
-                for (GamePlayerInfo& player : playerLists) {
-                    player.ClanName = Utils::UnicodeToAnsi(player.FClanName.buffer);
-                    player.AccountId = Utils::UnicodeToAnsi(player.FAccountId.buffer);
-                    player.PlayerName = Utils::UnicodeToAnsi(player.FPlayerName.buffer);
-                }
-                for (GamePlayerInfo& player : playerLists) {
-                    gameData.PlayerLists[player.PlayerName] = player;
-                    if (player.PlayerName == "0x97") {
-                        // std::cout << player.ClanName << std::endl;
-                    }
+        if (gameData.Scene == Scene::Gameing) {
+            gameData.PlayerCount = VmmCore::ReadValue<int>(gameData.GameState + Offset::PlayerArray + 0x8);
+            if (JudgeOneself()) {
+                DWORD_PTR NamePtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Playname);
+                if (!Utils::ValidPtr(NamePtr)) {
+                    FText NameText = VmmCore::ReadValue<FText>(NamePtr);
+                    gameData.Myself.Name = Utils::UnicodeToAnsi(NameText.buffer);
+                    gameData.Myself.ClanName = AnalyzeClanName(gameData.Myself.Name);
+                    gameData.Myself.Mesh = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Mesh);
+                    gameData.Myself.AnimScript =
+                        VmmCore::ReadValue<DWORD_PTR>(gameData.Myself.Mesh + Offset::AnimScriptInstance);
+                    gameData.Myself.TeamID = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::LastTeamNum);
+                    gameData.Myself.TeamID =
+                        gameData.Myself.TeamID >= 100000 ? gameData.Myself.TeamID - 100000 : gameData.Myself.TeamID;
                 }
             }
         }

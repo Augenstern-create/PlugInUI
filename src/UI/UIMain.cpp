@@ -1,53 +1,87 @@
-#include "UIMain.h"
-#include "imconfig.h"
 #include "imgui.h"
-#include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
-#include "imgui_internal.h"
-#include "imgui_module.h"
-#include "imstb_rectpack.h"
-#include "imstb_textedit.h"
-#include "imstb_truetype.h"
+#include "imgui_impl_dx11.h"
 #include <d3d11.h>
-#include "imgui_menu.h"
+#include <tchar.h>
+
+#include "UIMain.h"
+#include "Include.h"
 #include "imgui_radar.h"
-#include <stb_image.h>
-#include "version.h"
-#include <filesystem>
-#include "game/Constant.h"
-#include "game/Data.h"
+#include "imgui_module.h"
 
-#pragma comment(lib, "d3d11.lib")
-
-const std::string BalticMainPath = "\\photograph\\Baltic_Main.jpg";
-
-static ID3D11Device* g_pd3dDevice = NULL;
-static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
-static IDXGISwapChain* g_pSwapChain = NULL;
-static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
-static WNDCLASSEX wc = {sizeof(WNDCLASSEX)};
-static HWND hwnd = NULL;
-static std::string Path;
-ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+// imgui
 namespace ImGui {
 ImTextureID Map = nullptr;
 }  // namespace ImGui
 
-void CreateRenderTarget() {
-    ID3D11Texture2D* pBackBuffer;
-    g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-    g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-    pBackBuffer->Release();
-}
+struct WindowData {
+    WNDCLASSEXW wc;
+    HWND hwnd;
+    ID3D11Device* device;
+    ID3D11DeviceContext* deviceContext;
+    IDXGISwapChain* swapChain;
+    ID3D11RenderTargetView* RenderTargetView;
+    float width;
+    float height;
+    float clear_color_with_alpha[4];
 
-void CleanupRenderTarget() {
-    if (g_mainRenderTargetView) {
-        g_mainRenderTargetView->Release();
-        g_mainRenderTargetView = NULL;
+    WindowData()
+        : hwnd(nullptr),
+          device(nullptr),
+          deviceContext(nullptr),
+          swapChain(nullptr),
+          RenderTargetView(nullptr),
+          width((float)GetSystemMetrics(SM_CXSCREEN)),
+          height((float)GetSystemMetrics(SM_CYSCREEN)),
+          clear_color_with_alpha{0.45f, 0.55f, 0.60f, 1.00f} {
+        ZeroMemory(&wc, sizeof(wc));
     }
+    void Release() {
+        if (RenderTargetView) {
+            RenderTargetView->Release();
+            RenderTargetView = nullptr;
+        }
+        if (swapChain) {
+            swapChain->Release();
+            swapChain = nullptr;
+        }
+        if (deviceContext) {
+            deviceContext->Release();
+            deviceContext = nullptr;
+        }
+        if (device) {
+            device->Release();
+            device = nullptr;
+        }
+        if (hwnd) {
+            ::DestroyWindow(hwnd);
+            hwnd = nullptr;
+        }
+        ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+        width = 0;
+        height = 0;
+    }
+};
+
+// 初始化窗体数据
+WindowData mainWndData;
+WindowData detachedWndData;
+
+bool CreateRenderTargetForWindow(WindowData* WndData) {
+    ID3D11Texture2D* pBackBuffer = nullptr;
+    if (SUCCEEDED(WndData->swapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer)))) {
+        if (FAILED(WndData->device->CreateRenderTargetView(pBackBuffer, nullptr, &WndData->RenderTargetView))) {
+            LOGE("Window rendering failure...\n");
+            return false;
+        }
+        pBackBuffer->Release();
+        return true;
+    }
+    return false;
 }
 
-bool CreateDeviceD3D(HWND hWnds) {
+bool CreateDeviceD3D(WindowData* WndData) {
+    // Setup swap chain
     DXGI_SWAP_CHAIN_DESC sd;
     ZeroMemory(&sd, sizeof(sd));
     sd.BufferCount = 2;
@@ -58,60 +92,36 @@ bool CreateDeviceD3D(HWND hWnds) {
     sd.BufferDesc.RefreshRate.Denominator = 1;
     sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = hWnds;
+    sd.OutputWindow = WndData->hwnd;
     sd.SampleDesc.Count = 1;
     sd.SampleDesc.Quality = 0;
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
     UINT createDeviceFlags = 0;
+    // createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
     D3D_FEATURE_LEVEL featureLevel;
     const D3D_FEATURE_LEVEL featureLevelArray[2] = {
         D3D_FEATURE_LEVEL_11_0,
         D3D_FEATURE_LEVEL_10_0,
     };
-    if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2,
-                                      D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel,
-                                      &g_pd3dDeviceContext) != S_OK)
-        return false;
+    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
+                                                featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &WndData->swapChain,
+                                                &WndData->device, &featureLevel, &WndData->deviceContext);
+    if (res == DXGI_ERROR_UNSUPPORTED)  // Try high-performance WARP software driver if hardware is not available.
+        res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags,
+                                            featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &WndData->swapChain,
+                                            &WndData->device, &featureLevel, &WndData->deviceContext);
+    if (res != S_OK) return false;
 
-    CreateRenderTarget();
-    return true;
+    return CreateRenderTargetForWindow(WndData);
 }
 
-void CleanupDeviceD3D() {
-    CleanupRenderTarget();
-    if (g_pSwapChain) {
-        g_pSwapChain->Release();
-        g_pSwapChain = NULL;
-    }
-    if (g_pd3dDeviceContext) {
-        g_pd3dDeviceContext->Release();
-        g_pd3dDeviceContext = NULL;
-    }
-    if (g_pd3dDevice) {
-        g_pd3dDevice->Release();
-        g_pd3dDevice = NULL;
-    }
-}
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-#ifndef WM_DPICHANGED
-#define WM_DPICHANGED 0x02E0  // From Windows SDK 8.1+ headers
-#endif
-
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnds, UINT msg, WPARAM wParam, LPARAM lParam);
-
-LRESULT WINAPI WndProc(HWND hWnds, UINT msg, WPARAM wParam, LPARAM lParam) {
-    if (ImGui_ImplWin32_WndProcHandler(hWnds, msg, wParam, lParam)) return true;
-
+LRESULT WINAPI MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
-        case WM_SIZE:
-            if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED) {
-                CleanupRenderTarget();
-                g_pSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-                CreateRenderTarget();
-            }
-            return 0;
         case WM_SYSCOMMAND:
             if ((wParam & 0xfff0) == SC_KEYMENU)  // Disable ALT application menu
                 return 0;
@@ -119,226 +129,177 @@ LRESULT WINAPI WndProc(HWND hWnds, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_DESTROY:
             ::PostQuitMessage(0);
             return 0;
-        case WM_DPICHANGED:
-            if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports) {
-                const RECT* suggested_rect = (RECT*)lParam;
-                ::SetWindowPos(hWnds, NULL, suggested_rect->left, suggested_rect->top,
-                               suggested_rect->right - suggested_rect->left,
-                               suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
-            }
-            break;
+        case WM_CLOSE:
+            DestroyWindow(hWnd);
+            return 0;
     }
-    return ::DefWindowProc(hWnds, msg, wParam, lParam);
+
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) return true;
+
+    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
-void InitImGui() {
-    wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL,
-          _T("ImGui Tool"),   NULL};
-    ::RegisterClassEx(&wc);
-    hwnd = ::CreateWindow(wc.lpszClassName, _T("ImGui Tool"), WS_OVERLAPPEDWINDOW, 100, 100, 1, 1, NULL, NULL,
-                          wc.hInstance, NULL);
-
-    if (!CreateDeviceD3D(hwnd)) {
-        CleanupDeviceD3D();
-        ::UnregisterClass(wc.lpszClassName, wc.hInstance);
-        return;
+LRESULT WINAPI DetachedWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+        case WM_SYSCOMMAND:
+            if ((wParam & 0xfff0) == SC_KEYMENU)  // Disable ALT application menu
+                return 0;
+            break;
+        case WM_DESTROY:
+            ::PostQuitMessage(0);
+            return 0;
+        case WM_CLOSE:
+            DestroyWindow(hWnd);
+            return 0;
     }
 
-    ::ShowWindow(hwnd, SW_HIDE);
-    ::UpdateWindow(hwnd);
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) return true;
+
+    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
+}
+
+bool InitMainWindow(WindowData* WindData) {
+    WindData->wc = {sizeof(WindData->wc),     CS_CLASSDC, MainWndProc, 0L,      0L,
+                    GetModuleHandle(nullptr), nullptr,    nullptr,     nullptr, nullptr,
+                    L"MainWindowClass",       nullptr};
+    ::RegisterClassExW(&WindData->wc);
+    WindData->hwnd = ::CreateWindowW(WindData->wc.lpszClassName, L"ImGui Tool", WS_OVERLAPPEDWINDOW,
+                                     (WindData->width - WindData->height) * 0.5f, 0, WindData->height, WindData->height,
+                                     NULL, NULL, WindData->wc.hInstance, NULL);
+    if (!CreateDeviceD3D(WindData)) {
+        WindData->Release();
+        LOGE("Window hwndMain initialization failed. Procedure...\n");
+        return false;
+    }
+    // Disable resizing for the main window
+    LONG_PTR style = GetWindowLongPtr(WindData->hwnd, GWL_STYLE);
+    style &= ~WS_THICKFRAME;  // Disable resizing
+    SetWindowLongPtr(WindData->hwnd, GWL_STYLE, style);
+
+    // Show the main window
+    ::ShowWindow(WindData->hwnd, SW_SHOWDEFAULT);
+    ::UpdateWindow(WindData->hwnd);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
 
     ImGui::StyleColorsDark();
+    ImGui_ImplWin32_Init(WindData->hwnd);
+    ImGui_ImplDX11_Init(WindData->device, WindData->deviceContext);
+    return true;
+}
 
-    ImGui_ImplWin32_Init(hwnd);
-    ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
-
-    io.IniFilename = nullptr;
-    ImFontConfig Font_cfg;
-    Font_cfg.FontDataOwnedByAtlas = false;
-
-    std::filesystem::path currentPath = std::filesystem::current_path();
-    std::string run_path = currentPath.string();
-    std::string font_path = run_path + "\\DouyinSansBold.otf";
-    float fontSize = 14.0f;
-    ImFont* font =
-        io.Fonts->AddFontFromFileTTF(font_path.c_str(), fontSize, &Font_cfg, io.Fonts->GetGlyphRangesChineseFull());
-    if (font == NULL) {
-        font = io.Fonts->AddFontDefault();
+bool InitDetachedWindow(WindowData* DetachedWindData) {
+    DetachedWindData->wc = {sizeof(DetachedWindData->wc), CS_CLASSDC, DetachedWndProc, 0L,      0L,
+                            GetModuleHandle(nullptr),     nullptr,    nullptr,         nullptr, nullptr,
+                            L"DetachedWindowClass",       nullptr};
+    ::RegisterClassExW(&DetachedWindData->wc);
+    DetachedWindData->hwnd = ::CreateWindowW(DetachedWindData->wc.lpszClassName, L"ImGui Debug", WS_OVERLAPPEDWINDOW, 0,
+                                             0, DetachedWindData->width / 2, DetachedWindData->height, NULL, NULL,
+                                             DetachedWindData->wc.hInstance, NULL);
+    if (!CreateDeviceD3D(DetachedWindData)) {
+        DetachedWindData->Release();
+        LOGE("Window hwndMain initialization failed. Procedure...\n");
+        return false;
     }
-    Path = run_path;
-    ImGui::ShowExampleAppMenuInitializelist();
+    // Disable resizing for the main window
+    LONG_PTR style = GetWindowLongPtr(DetachedWindData->hwnd, GWL_STYLE);
+    style &= ~WS_THICKFRAME;  // Disable resizing
+    SetWindowLongPtr(DetachedWindData->hwnd, GWL_STYLE, style);
 
-    // ImGui::maptextures.Baltic_Main = CreateTextureFromImage((run_path + BalticMainPath).c_str(), g_pd3dDevice);
-    // std::cout << "Full Path: " << (run_path + BalticMainPath).c_str() << std::endl;
+    // Show the main window
+    ::ShowWindow(DetachedWindData->hwnd, SW_SHOWDEFAULT);
+    ::UpdateWindow(DetachedWindData->hwnd);
 
-    // std::cout << std::string(Path + "\\photograph\\" + "Range_Main" + ".png").c_str() << std::endl;
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+
+    ImGui::StyleColorsDark();
+    ImGui_ImplWin32_Init(DetachedWindData->hwnd);
+    ImGui_ImplDX11_Init(DetachedWindData->device, DetachedWindData->deviceContext);
+    float clearColor[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    memcpy(DetachedWindData->clear_color_with_alpha, clearColor, sizeof(DetachedWindData->clear_color_with_alpha));
+
+    return true;
+}
+
+bool InitImGui() {
+    // // Create main window
+    if (!InitMainWindow(&mainWndData)) return false;
+    // if (!InitDetachedWindow(&detachedWndData)) return false;
+    return true;
+}
+
+// 渲染 ImGui 内容
+void MainRenderImGui(WindowData* WindData) {
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    // Main ImGui content for the main window
+    ImGui::Begin("Main Window");
+    ImGui::Text("Hello from Main Window!");
+    ImGui::End();
+
+    ImGui::Render();
+    // Render ImGui for the main window
+    WindData->deviceContext->OMSetRenderTargets(1, &WindData->RenderTargetView, nullptr);
+    WindData->deviceContext->ClearRenderTargetView(WindData->RenderTargetView,
+                                                   (float*)&WindData->clear_color_with_alpha);
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    WindData->swapChain->Present(1, 0);  // Present with vsync
+    //  WindData->swapChain->Present(0, 0); // Present without vsync
+}
+void DetachedRenderImGui(WindowData* WindData) {
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    // Main ImGui content for the main window
+    ImGui::Begin("Detached Window");
+    ImGui::Text("Hello from Detached Window!");
+    ImGui::End();
+
+    ImGui::Render();
+    // Render ImGui for the main window
+    WindData->deviceContext->OMSetRenderTargets(1, &WindData->RenderTargetView, nullptr);
+    WindData->deviceContext->ClearRenderTargetView(WindData->RenderTargetView,
+                                                   (float*)&WindData->clear_color_with_alpha);
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    WindData->swapChain->Present(1, 0);  // Present with vsync
+    // WindData->swapChain->Present(0, 0);  // Present without vsync
+}
+
+void UpdateImGui() {
+    // Main loop
+    bool done = false;
+    ImGuiIO& io = ImGui::GetIO();
+    // Message loop
+    while (!done) {
+        MSG msg;
+        while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
+            ::TranslateMessage(&msg);
+            ::DispatchMessage(&msg);
+            if (msg.message == WM_QUIT) done = true;
+        }
+
+        MainRenderImGui(&mainWndData);
+        // DetachedRenderImGui(&detachedWndData);
+    }
 }
 
 void ReleaseImGui() {
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
-    CleanupDeviceD3D();
-    ::DestroyWindow(hwnd);
-    ::UnregisterClass(wc.lpszClassName, wc.hInstance);
-}
-
-void UpdateImGui() {
-    bool done = false;
-    ImGuiIO& io = ImGui::GetIO();
-    while (!done) {
-        MSG msg;
-        while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
-            ::TranslateMessage(&msg);
-            ::DispatchMessage(&msg);
-            if (msg.message == WM_QUIT) done = true;
-        }
-        if (done) break;
-
-        ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
-
-        {
-            ImGuiStyle& Style = ImGui::GetStyle();
-            float Screen_Width{(float)GetSystemMetrics(SM_CXSCREEN)};   // 获取显示器的宽
-            float Screen_Heigth{(float)GetSystemMetrics(SM_CYSCREEN)};  // 获取显示器的高
-            static bool show_menu_window = true;
-            static bool show_radar_window = true;
-            if (show_menu_window) {
-                ImGui::ShowMenuWindow(&show_menu_window, ImVec2((float)Screen_Width, (float)Screen_Heigth));
-            } else {
-                break;
-            }
-            if (gameData.Scene == Scene::Gameing) {
-                if (!ImGui::Map) {
-                    ImGui::Map = ImGui::CreateTextureFromImage(
-                        std::string(Path + "\\photograph\\" + gameData.Map.MapName + ".png").c_str(), g_pd3dDevice);
-                    std::cout << "Map->init();gameData.MapName" << std::endl;
-                }
-                ImGui::ShowRadarWindow(&show_radar_window, ImVec2((float)Screen_Width, (float)Screen_Heigth));
-            }
-            // std::cout << (int)gameData.Scene << std::endl;
-            ImGui::SetNextWindowPos({Screen_Width / 4, 20}, ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(Screen_Width * 0.5f, Screen_Width * 0.5f + 30), ImGuiCond_FirstUseEver);
-            ImGui::Begin("DeBug", NULL, ImGuiWindowFlags_None);
-            if (ImGui::BeginTabBar("DeBugTabs", ImGuiTabBarFlags_None)) {
-                if (ImGui::BeginTabItem("Main")) {
-                    ImGui::Text("PID: %d", gameData.PID);
-                    ImGui::Text("GameBase: %lld", gameData.GameBase);
-                    ImGui::Text("UWorld: %lld", gameData.UWorld);
-                    ImGui::Text("CurrentLevel: %lld", gameData.CurrentLevel);
-                    ImGui::Text("GNames: %lld", gameData.GNames);
-                    ImGui::Text("GameInstance: %lld", gameData.GameInstance);
-                    ImGui::Text("GameState: %lld", gameData.GameState);
-                    ImGui::Text("LocalPlayer: %lld", gameData.LocalPlayer);
-                    ImGui::Text("PlayerController: %lld", gameData.PlayerController);
-                    ImGui::Text("Actor: %lld", gameData.Actor);
-                    ImGui::Text("MyHUD: %lld", gameData.MyHUD);
-                    ImGui::Text("Scene: %d", (int)gameData.Scene);
-                    ImGui::Text("Windows Form Width: %d  Height: %d", gameData.Map.ScreenWidth,
-                                gameData.Map.ScreenHeight);
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("entity")) {
-                    if (gameData.Scene == Scene::Gameing) {
-                        ImGui::Text("ActorCount: %d", gameData.ActorCount);
-                        auto Players = Data::GetPlayers();
-                        ImGui::Columns(3, nullptr, false);
-                        for (auto entity : Players) {
-                            ImGui::Text("Name: %s", entity.Name.c_str());
-                            ImGui::NextColumn();
-                            ImGui::Text("AimOffsets: %f", entity.AimOffsets.y);
-                            ImGui::NextColumn();
-                            ImGui::Text("Location x: %f  y: %f  z: %f", entity.Location.x, entity.Location.y,
-                                        entity.Location.z);
-                            ImGui::NextColumn();
-                        }
-                        ImGui::Columns(1);
-                        ImGui::Text("end");
-                    }
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Radar")) {
-                    if (gameData.Scene == Scene::Gameing) {
-                        ImGui::Text("Map name: %s", gameData.Map.MapName.c_str());
-                        ImGui::Text("MapWidget: %lld", gameData.Map.MapWidget);
-                        ImGui::Text("MapGrid: %lld", gameData.Map.MapGrid);
-                        ImGui::Text("Slot: %lld", gameData.Map.Slot);
-                        ImGui::Text("size: %f", gameData.Map.MapSize);
-                        ImGui::Text("zoomSize: %f", gameData.Map.MapZoomValue);
-                        ImGui::Text("ImageMapSize: %f", gameData.Radar.ImageMapSize);
-                        ImGui::Text("ZoomFactor: %f", gameData.Map.MapZoomValue);
-                        ImGui::Text("Visibility: %d", (int)gameData.Map.Visibility);
-                        ImGui::Text("Position x: %f  y: %f", gameData.Map.Position.X, gameData.Map.Position.Y);
-                        ImGui::Text("Layout Left: %f  Top: %f  Right: %f  Bottom: %f", gameData.Map.Layout.Left,
-                                    gameData.Map.Layout.Top, gameData.Map.Layout.Right, gameData.Map.Layout.Bottom);
-                        ImGui::Text("WorldOriginLocation x: %f  y: %f", gameData.Map.WorldOriginLocation.x,
-                                    gameData.Map.WorldOriginLocation.y);
-                        ImGui::Text("ImageMapSize: %f", gameData.Radar.ImageMapSize);
-                        ImGui::Text("ZoomFactor: %f", gameData.Radar.ZoomFactor);
-                        ImGui::Text("ScreenCenter x: %f  y: %f", gameData.Radar.ScreenCenter.X,
-                                    gameData.Radar.ScreenCenter.Y);
-                    }
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("MaxMapLocation")) {
-                    if (gameData.Scene == Scene::Gameing) {
-                        auto location = gameData.Map.Players;
-                        ImGui::Columns(2, nullptr, false);
-                        for (auto lisepos : location) {
-                            auto pos = lisepos.second;
-                            ImGui::Text("entity: %lld", lisepos.first);
-                            ImGui::NextColumn();
-                            ImGui::Text("RadarScreenLocation X: %f  Y: %f", pos.RadarScreenLocation.X,
-                                        pos.RadarScreenLocation.Y);
-                            ImGui::NextColumn();
-                        }
-                        ImGui::Columns(1);
-                    }
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("MinMapLocation")) {
-                    if (gameData.Scene == Scene::Gameing) {
-                        auto location = gameData.Radar.Players;
-                        ImGui::Columns(2, nullptr, false);
-                        for (auto lisepos : location) {
-                            auto pos = lisepos.second;
-                            ImGui::Text("entity: %lld", lisepos.first);
-                            ImGui::NextColumn();
-                            ImGui::Text("RadarLocation X: %f  Y: %f  Z: %f", pos.x, pos.y, pos.z);
-                            ImGui::NextColumn();
-                        }
-                        ImGui::Columns(1);
-                    }
-                    ImGui::EndTabItem();
-                }
-            }
-            ImGui::End();
-        }
-
-        ImGui::Render();
-        const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w,
-                                                 clear_color.z * clear_color.w, clear_color.w};
-        g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
-        g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-        }
-
-        g_pSwapChain->Present(1, 0);
-    }
+    mainWndData.Release();
+    // detachedWndData.Release();
 }
 
 void UIPlay() {

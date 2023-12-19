@@ -39,7 +39,7 @@ void ImGui::ShowRadarWindow(bool* p_open, ImVec2 display_size) {
     ImVec2 from_size = ImGui::GetContentRegionAvail();
     ImVec2 childPos = ImGui::GetWindowPos();
     ImVec2 imageSize = ImVec2(gameData.Radar.ImageMapSize, gameData.Radar.ImageMapSize);
-    ImVec2 zoomedSize = ImVec2(imageSize.x * (from_size.x / imageSize.x), imageSize.y * (from_size.y / imageSize.y));
+    ImVec2 zoomedSize = ImVec2(from_size.x, from_size.y - 30.0f);
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 uv0 = {0.0f + (gameData.Radar.ZoomFactor * 0.5f), 0.0f + (gameData.Radar.ZoomFactor * 0.5f)};
     ImVec2 uv1 = {1.0f - (gameData.Radar.ZoomFactor * 0.5f), 1.0f - (gameData.Radar.ZoomFactor * 0.5f)};
@@ -57,17 +57,12 @@ void ImGui::ShowRadarWindow(bool* p_open, ImVec2 display_size) {
         float imageWidth = uv1.x - uv0.x;
         float imageHeight = uv1.y - uv0.y;
         // 鼠标在屏幕中位置
-        ImVec2 fromMousePos =
-            ImVec2((MousePos.x - childPos.x - 8) / zoomedSize.x, (MousePos.y - childPos.y - 28) / zoomedSize.y);
+        ImVec2 fromMousePos = ImVec2((MousePos.x - childPos.x - 8), (MousePos.y - childPos.y - 28));
         // 鼠标在图片中位置
-        ImVec2 imageMousePos = ImVec2(0, 0);
-        // ((zoomedSize.x)) *  newZoomFactor * 2.0f ((zoomedSize.y)) * newZoomFactor * 2.0f
-        // ImVec2 deltaOffset = ImVec2(((fromMousePos.x - (from_size.x * 0.5f)) / ((zoomedSize.x) * newZoomFactor)),
-        //                             ((fromMousePos.y - (from_size.y * 0.5f)) / ((zoomedSize.y) * newZoomFactor)));
-        // 计算中心点偏移量
-        ImVec2 deltaOffset = ImVec2((fromMousePos.x - (imageWidth * 0.5f)) * (imageWidth * zoomedSize.x),
-                                    (fromMousePos.y - (imageHeight * 0.5f)) * (imageWidth * zoomedSize.x));
-
+        ImVec2 imageMousePos = ImVec2(fromMousePos.x / zoomedSize.x, fromMousePos.y / zoomedSize.y);
+        ImVec2 deltaOffset = ImVec2(((fromMousePos.x - (zoomedSize.x * 0.5f)) / zoomedSize.x * newZoomFactor),
+                                    ((fromMousePos.y - (zoomedSize.y * 0.5f)) / zoomedSize.y * newZoomFactor));
+        // 中心点偏移
         gameData.Radar.ScreenCenter = {deltaOffset.x, deltaOffset.y};
     }
     if (gameData.Radar.ScreenCenter.X != 0.0f || gameData.Radar.ScreenCenter.Y != 0.0f) {
@@ -108,13 +103,58 @@ void ImGui::ShowRadarWindow(bool* p_open, ImVec2 display_size) {
                 ImVec2((pos.x - uv0.x) * zoomedSize.x / imageWidth, (pos.y - uv0.y) * zoomedSize.y / imageHeight);
             // 窗体起始坐标(childPos.x + 8,childPos.y + 28 )
             ImVec2 screenPoint = ImVec2(childPos.x + 8 + zoomedPoint.x, childPos.y + 28 + zoomedPoint.y);
+            ImU32 PlayerColor =
+                player.IsMyTeam ? gameData.Config.color.PlayerTeamCol : gameData.Config.color.EnemyTeamCol;
             ImGui::PlayerDisplay(player.Name.c_str(), (8.0f * (1 - gameData.Radar.ZoomFactor * 0.1f)),
-                                 -player.AimOffsets.y, ImVec2(screenPoint.x, screenPoint.y),
-                                 IM_COL32(60, 255, 60, 255));
+                                 player.AimOffsets.y, ImVec2(screenPoint.x, screenPoint.y), PlayerColor);
         } else {
             continue;
         }
     }
+    ImGui::End();
+}
+
+void ImGui::ShowRadarWindow2(bool* p_open) {
+    IM_ASSERT(ImGui::GetCurrentContext() != NULL && "Missing Dear ImGui context. Refer to examples app!");
+    // 创建ImGui窗口，大小与hwnd窗口的高度相匹配，无边框
+    ImVec2 original_size = {ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y};
+    ImVec2 original_pos = {0, 0};
+    ImGui::SetNextWindowSize(ImVec2(original_size.x, original_size.y));
+    ImGui::SetNextWindowPos(original_pos);
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoTitleBar;   // 禁用标题栏
+    window_flags |= ImGuiWindowFlags_NoScrollbar;  // 禁用滚动条
+    window_flags |= ImGuiWindowFlags_NoMove;       // 禁止用户拖动
+    window_flags |= ImGuiWindowFlags_NoResize;     // 禁止用户使用鼠标调整大小并禁用窗口边框
+    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;  // 聚焦时禁止将窗口置为上层
+    window_flags |= ImGuiWindowFlags_NoScrollWithMouse;  // 禁用用户使用鼠标滚轮垂直滚动，但如果设置了
+    // NoScrollbar，则鼠标滚轮会转发给父窗口
+
+    if (!ImGui::Begin("ReadWindow", p_open, window_flags)) {
+        ImGui::End();
+        if (ImGui::Map) {
+            ID3D11ShaderResourceView* d3dTexture = static_cast<ID3D11ShaderResourceView*>(ImGui::Map);
+            d3dTexture->Release();
+        }
+        return;
+    }
+    // 开始位置
+    ImVec2 CursorPos = ImVec2((original_size.x - original_size.y) * 0.5f, 0);
+    CursorPos = {CursorPos.x - ((gameData.Radar.ZoomFactor * original_size.y - original_size.y) * 0.5f),
+                 CursorPos.y - ((gameData.Radar.ZoomFactor * original_size.y - original_size.y) * 0.5f)};
+    // 图片大小
+    ImVec2 ImageSize = ImVec2(original_size.y * gameData.Radar.ZoomFactor, original_size.y * gameData.Radar.ZoomFactor);
+    // // 获取鼠标滚轮的变化值
+    float scroll_delta = ImGui::GetIO().MouseWheel;
+    if (scroll_delta != 0.0f) {
+        gameData.Radar.ZoomFactor += scroll_delta * 0.5f;
+        gameData.Radar.ZoomFactor = gameData.Radar.ZoomFactor < 1.0f ? 1.0f : gameData.Radar.ZoomFactor;
+        ImageSize = {original_size.y * gameData.Radar.ZoomFactor, original_size.y * gameData.Radar.ZoomFactor};
+        // CursorPos = {CursorPos.x - (ImageSize.x - original_size.y) * 0.5f,
+        //              CursorPos.x - (ImageSize.y - original_size.y) * 0.5f};
+    }
+    ImGui::SetCursorPos(CursorPos);
+    ImGui::Image(ImGui::Map, ImageSize * 1.1, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
     ImGui::End();
 }
 
