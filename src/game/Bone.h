@@ -3,6 +3,7 @@
 #include <list>
 #include <unordered_map>
 #include "Vector.h"
+#include "utils/Utils.h"
 
 enum EBoneIndex {
     root = 0,
@@ -228,23 +229,17 @@ enum EBoneIndex {
 
 namespace SkeletonLists {
 static std::list<EBoneIndex> upper_part = {EBoneIndex::neck_01, EBoneIndex::head, EBoneIndex::forehead};
-static std::list<EBoneIndex> right_arm = {EBoneIndex::neck_01, EBoneIndex::upperarm_r, EBoneIndex::lowerarm_r,
-                                          EBoneIndex::hand_r};
-static std::list<EBoneIndex> left_arm = {EBoneIndex::neck_01, EBoneIndex::upperarm_l, EBoneIndex::lowerarm_l,
-                                         EBoneIndex::hand_l};
+static std::list<EBoneIndex> right_arm = {EBoneIndex::neck_01, EBoneIndex::upperarm_r, EBoneIndex::lowerarm_r, EBoneIndex::hand_r};
+static std::list<EBoneIndex> left_arm = {EBoneIndex::neck_01, EBoneIndex::upperarm_l, EBoneIndex::lowerarm_l, EBoneIndex::hand_l};
 static std::list<EBoneIndex> spine = {EBoneIndex::neck_01, EBoneIndex::spine_01, EBoneIndex::pelvis};
-static std::list<EBoneIndex> lower_right = {EBoneIndex::pelvis, EBoneIndex::thigh_r, EBoneIndex::calf_r,
-                                            EBoneIndex::foot_r};
-static std::list<EBoneIndex> lower_left = {EBoneIndex::pelvis, EBoneIndex::thigh_l, EBoneIndex::calf_l,
-                                           EBoneIndex::foot_l};
+static std::list<EBoneIndex> lower_right = {EBoneIndex::pelvis, EBoneIndex::thigh_r, EBoneIndex::calf_r, EBoneIndex::foot_r};
+static std::list<EBoneIndex> lower_left = {EBoneIndex::pelvis, EBoneIndex::thigh_l, EBoneIndex::calf_l, EBoneIndex::foot_l};
 static std::list<std::list<EBoneIndex>> skeleton = {right_arm, left_arm, spine, lower_right, lower_left};
 
 static std::list<EBoneIndex> skeleton_bones = {
-    EBoneIndex::camera_tpp, EBoneIndex::root,       EBoneIndex::forehead_root, EBoneIndex::forehead,
-    EBoneIndex::neck_01,    EBoneIndex::head,       EBoneIndex::upperarm_r,    EBoneIndex::lowerarm_r,
-    EBoneIndex::hand_r,     EBoneIndex::upperarm_l, EBoneIndex::lowerarm_l,    EBoneIndex::hand_l,
-    EBoneIndex::spine_01,   EBoneIndex::pelvis,     EBoneIndex::thigh_r,       EBoneIndex::calf_r,
-    EBoneIndex::foot_r,     EBoneIndex::thigh_l,    EBoneIndex::calf_l,        EBoneIndex::foot_l};
+    EBoneIndex::forehead,   EBoneIndex::neck_01,    EBoneIndex::head,    EBoneIndex::upperarm_r, EBoneIndex::lowerarm_r, EBoneIndex::hand_r,
+    EBoneIndex::upperarm_l, EBoneIndex::lowerarm_l, EBoneIndex::hand_l,  EBoneIndex::spine_01,   EBoneIndex::pelvis,     EBoneIndex::thigh_r,
+    EBoneIndex::calf_r,     EBoneIndex::foot_r,     EBoneIndex::thigh_l, EBoneIndex::calf_l,     EBoneIndex::foot_l};
 };  // namespace SkeletonLists
 
 struct PlayerSkeletons {

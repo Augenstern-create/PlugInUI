@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SrcUe4Math.h"
+#include "imgui.h"
 
 typedef struct _D3DMATRIX {
     union {
@@ -54,6 +55,7 @@ class Vector3 {
     Vector3 operator-() const { return Vector3(-x, -y, -z); }
 
     Vector3 operator+(const Vector3& v) const { return Vector3(x + v.x, y + v.y, z + v.z); }
+    Vector3 operator+(const float fValue) const { return Vector3(x + fValue, y + fValue, z + fValue); }
 
     Vector3 operator-(const Vector3& v) const { return Vector3(x - v.x, y - v.y, z - v.z); }
 
@@ -73,6 +75,10 @@ class Vector3 {
     Vector3 operator^(const Vector3& v) const { return OuterProduct(v); }
 
     float operator*(const Vector3& v) const { return InnerProduct(v); }
+
+    explicit operator ImVec2() const { return ImVec2{x, y}; }
+
+    explicit operator const ImVec2() const { return ImVec2{x, y}; }
 };
 
 struct FText {
@@ -81,11 +87,11 @@ struct FText {
 
 class VectorHelper {
    public:
-    // static Vector3 WorldToScreen(Vector3 WorldLocation);
+    static Vector3 WorldToScreen(Vector3 WorldLocation);
 
-    // static void WorldToScreen(Vector3 WorldLocation, Vector3* pOut, float* DeltaInMeters);
+    static void WorldToScreen(Vector3 WorldLocation, Vector3* pOut, float* DeltaInMeters);
 
-    // static Vector3 WorldToScreenAim(Vector3 WorldLocation);
+    static Vector3 WorldToScreenAim(Vector3 WorldLocation);
 
     static Vector3 GetBoneWithRotation(FTransform BoneArray, FTransform ComponentToWorld);
 };

@@ -108,7 +108,7 @@ struct FString : public TArray<wchar_t> {
     FString() = default;
 
     explicit FString(const wchar_t* other) {
-        Max = Count = *other ? std::wcslen(other) + 1 : 0;
+        Max = Count = (int32_t)(*other ? std::wcslen(other) + 1 : 0);
 
         if (Count) {
             Data = const_cast<wchar_t*>(other);
@@ -137,10 +137,10 @@ struct FString : public TArray<wchar_t> {
 
 struct FTslWidgetState {
     unsigned char Pad[0x30];
-    ULONG64 WidgetClass;               // 0x0030(0x0008) (CPF_ZeroConstructor, CPF_Transient, CPF_IsPlainOldData)
-    unsigned char UnknownData00[0x8];  // 0x0038(0x0008) MISSED OFFSET
-    ULONG64 Widget;  // 0x0040(0x0008) (CPF_ExportObject, CPF_ZeroConstructor, CPF_Transient, CPF_InstancedReference,
-                     // CPF_IsPlainOldData)
+    ULONG64 WidgetClass;                // 0x0030(0x0008) (CPF_ZeroConstructor, CPF_Transient, CPF_IsPlainOldData)
+    unsigned char UnknownData00[0x8];   // 0x0038(0x0008) MISSED OFFSET
+    ULONG64 Widget;                     // 0x0040(0x0008) (CPF_ExportObject, CPF_ZeroConstructor, CPF_Transient, CPF_InstancedReference,
+                                        // CPF_IsPlainOldData)
     unsigned char UnknownData01[0x18];  // 0x0048(0x0018) MISSED OFFSET
 };
 
@@ -153,35 +153,33 @@ struct FMargin {
 
 /// @brief 武器弹道配置3
 struct FWeaponTrajectoryConfig3 {
-    float
-        InitialSpeed;  // 0x0000(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    float HitDamage;   // 0x0004(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    float LowerClampDamage;             // 0x0008(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance,
-                                        // CPF_IsPlainOldData)
-    unsigned long long BallisticCurve;  // 0x0010(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance,
-                                        // CPF_IsPlainOldData)
-    float RangeModifier;  // 0x0018(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly, CPF_ZeroConstructor,
-                          // CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    float ReferenceDistance;                  // 0x001C(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
-                                              // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    float TravelDistanceMax;                  // 0x0020(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
-                                              // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    unsigned char bUseMaxDamageDistance : 1;  // 0x0024(0x0001) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
-                                              // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    float SimulationSubstepTime;              // 0x0028(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
-                                              // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    float VDragCoefficient;                   // 0x002C(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
-                                              // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    float BDS;  // 0x0030(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly, CPF_ZeroConstructor,
-                // CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    unsigned char bUseAdvancedBallistics : 1;  // 0x0034(0x0001) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
-                                               // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    unsigned char bCanProduceCrackSound : 1;   // 0x0035(0x0001) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
-                                               // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-    unsigned char IsPenetrable : 1;  // 0x0036(0x0001) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance,
-                                     // CPF_IsPlainOldData)
-    unsigned long long
-        DamageType;  // 0x0038(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float InitialSpeed;                                 // 0x0000(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float HitDamage;                                    // 0x0004(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float LowerClampDamage;                             // 0x0008(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance,
+                                                        // CPF_IsPlainOldData)
+    unsigned long long BallisticCurve;                  // 0x0010(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance,
+                                                        // CPF_IsPlainOldData)
+    float RangeModifier;                                // 0x0018(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly, CPF_ZeroConstructor,
+                                                        // CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float ReferenceDistance;                            // 0x001C(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
+                                                        // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float TravelDistanceMax;                            // 0x0020(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
+                                                        // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    unsigned char bUseMaxDamageDistance : 1;            // 0x0024(0x0001) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
+                                                        // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float SimulationSubstepTime;                        // 0x0028(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
+                                                        // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float VDragCoefficient;                             // 0x002C(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
+                                                        // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    float BDS;                                          // 0x0030(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly, CPF_ZeroConstructor,
+                                                        // CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    unsigned char bUseAdvancedBallistics : 1;           // 0x0034(0x0001) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
+                                                        // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    unsigned char bCanProduceCrackSound : 1;            // 0x0035(0x0001) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly,
+                                                        // CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+    unsigned char IsPenetrable : 1;                     // 0x0036(0x0001) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance,
+                                                        // CPF_IsPlainOldData)
+    unsigned long long DamageType;                      // 0x0038(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
     unsigned char bIsTrajectoryReplicationEnabled : 1;  // 0x0040(0x0001) (CPF_Edit, CPF_DisableEditOnInstance)
 };
 

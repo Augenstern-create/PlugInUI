@@ -1,3 +1,6 @@
 #pragma once
 
-void UIPlay();
+int UIPlay();
+
+// int UIPlay2();
+// int UIPlay3();

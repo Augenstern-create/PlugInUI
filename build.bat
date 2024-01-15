@@ -12,7 +12,7 @@ set BUILD_DIR=%ROOT_DIR%build
 mkdir "%BUILD_DIR%"
 cd "%BUILD_DIR%"
 
-cmake -A x64 ^
+cmake -G "Visual Studio 17 2022" -A x64 ^
 -DCMAKE_BUILD_TYPE=Release ^
 -DCMAKE_SYSTEM_NAME=Windows ^
 -DINTTYPES_FORMAT=C99 ^

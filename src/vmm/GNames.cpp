@@ -63,5 +63,10 @@ void GNames::GetGNameLists() {
         if (EntityLists.find(name) != EntityLists.end()) {
             EntityLists[name].ID = i + begin;
         }
+        auto it = std::find_if(Weapon::WeaponTextureLists.begin(), Weapon::WeaponTextureLists.end(), Weapon::FindWeaponByName(name));
+        if (it != Weapon::WeaponTextureLists.end()) {
+            it->ID = i + begin;
+        }
     }
+    // Weapon::LOGDebug();
 }

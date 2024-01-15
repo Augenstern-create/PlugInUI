@@ -11,7 +11,7 @@
 
 namespace ImGui {
 IMGUI_API void ShowRadarWindow(bool* p_open, ImVec2 display_size);
-IMGUI_API void ShowRadarWindow2(bool* p_open);
+IMGUI_API void ShowRadarWindow2(bool* p_open, ImVec2 display_size);
 
 }  // namespace ImGui
 #endif  // IMGUI_DISABLE

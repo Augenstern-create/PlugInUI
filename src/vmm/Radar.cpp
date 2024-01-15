@@ -25,8 +25,8 @@ bool Radar::GetMap() {
         MapSize = 152950.f;
     }
 
-    if (MapName == "Erangel_Main" || MapName == "Baltic_Main" || MapName == "Desert_Main" || MapName == "Kiki_Main" ||
-        MapName == "Tiger_Main" || MapName == "DihorOtok_Main" || MapName == "Neon_Main") {
+    if (MapName == "Erangel_Main" || MapName == "Baltic_Main" || MapName == "Desert_Main" || MapName == "Kiki_Main" || MapName == "Tiger_Main" ||
+        MapName == "DihorOtok_Main" || MapName == "Neon_Main") {
         gameData.Radar.ImageMapSize = 816000.f;
     } else if (MapName == "Savage_Main") {
         gameData.Radar.ImageMapSize = 408000.f;
@@ -97,8 +97,7 @@ bool Radar::GetMapGrid() {
 }
 
 bool Radar::GetVisibility() {
-    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.Map.MapWidget + Offset::Visibility) ==
-                      ESlateVisibility::SelfHitTestInvisible;
+    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.Map.MapWidget + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
     gameData.Map.Visibility = Visibility;
     return gameData.Map.Visibility;
 }
@@ -116,7 +115,6 @@ float Radar::GetZoomFactor() {
 Vector3 Radar::PlayerToRadarPosition(Vector3 position) {
     // Vector3 value;
     auto value = position + gameData.Map.WorldOriginLocation;
-    // value = {position.x + woeldLocation.x, position.y + woeldLocation.y, position.z + woeldLocation.z};
     if (value.x < 0) value = {-value.x, value.y, value.z};
     if (value.y < 0) value = {value.x, -value.y, value.z};
     if (value.z < 0) value = {value.x, value.y, -value.z};
@@ -124,12 +122,10 @@ Vector3 Radar::PlayerToRadarPosition(Vector3 position) {
 }
 
 FVector2D Radar::GetPosition() {
-    // 鼠标坐标
     auto Alignment = VmmCore::ReadValue<FVector2D>(gameData.Map.Slot + Offset::LayoutData + 0x0 + Offset::Alignment);
     const FVector2D CurrentPos = {gameData.Map.Layout.Right * (Alignment.X - 0.5f) - gameData.Map.Layout.Left,
                                   gameData.Map.Layout.Bottom * (Alignment.Y - 0.5f) - gameData.Map.Layout.Top};
-    gameData.Map.Position = {CurrentPos.X / DefaultSize.X / gameData.Map.MapZoomValue * 2.0f,
-                             CurrentPos.Y / DefaultSize.Y / gameData.Map.MapZoomValue * 2.0f};
+    gameData.Map.Position = {CurrentPos.X / DefaultSize.X / gameData.Map.MapZoomValue * 2.0f, CurrentPos.Y / DefaultSize.Y / gameData.Map.MapZoomValue * 2.0f};
     return gameData.Map.Position;
 }
 
@@ -161,22 +157,20 @@ void Radar::Update() {
         Radar::GetPosition();
 
         const float MapSizeFactored = gameData.Map.MapSize / gameData.Map.MapZoomValue;
-        const Vector3 WorldCenterLocation = {gameData.Map.MapSize * (1.0f + gameData.Map.Position.X),
-                                             gameData.Map.MapSize * (1.0f + gameData.Map.Position.Y), 0.0f};
+        const Vector3 WorldCenterLocation = {gameData.Map.MapSize * (1.0f + gameData.Map.Position.X), gameData.Map.MapSize * (1.0f + gameData.Map.Position.Y),
+                                             0.0f};
 
         const auto players = Data::GetPlayers();
         for (auto player : players) {
             const Vector3 WorldLocation = PlayerToRadarPosition(player.Location);
             const Vector3 RadarPos = WorldLocation - WorldCenterLocation;
-            const FVector2D RadarScreenPos =
-                gameData.Map.ScreenCenter + FVector2D{RadarPos.x / MapSizeFactored * gameData.Map.ScreenCenter.Y,
-                                                      RadarPos.y / MapSizeFactored * gameData.Map.ScreenCenter.Y};
+            const FVector2D RadarScreenPos = gameData.Map.ScreenCenter + FVector2D{RadarPos.x / MapSizeFactored * gameData.Map.ScreenCenter.Y,
+                                                                                   RadarPos.y / MapSizeFactored * gameData.Map.ScreenCenter.Y};
 
             gameData.Map.Players[player.Entity] = {RadarScreenPos};
-            Vector3 minRadarPos = {RadarScreenPos.X / gameData.Map.Layout.Right,
-                                   RadarScreenPos.Y / gameData.Map.Layout.Bottom, WorldLocation.z};
-            Vector3 pos = {WorldLocation.x / (gameData.Map.MapSize * 2), WorldLocation.y / (gameData.Map.MapSize * 2),
-                           WorldLocation.z};
+            Vector3 minRadarPos = {RadarScreenPos.X / gameData.Map.Layout.Right, RadarScreenPos.Y / gameData.Map.Layout.Bottom, WorldLocation.z};
+            Vector3 pos = {WorldLocation.x / gameData.Radar.ImageMapSize, WorldLocation.y / gameData.Radar.ImageMapSize, WorldLocation.z};
+            // Vector3 pos = {WorldLocation.x, WorldLocation.y, WorldLocation.z};
             gameData.Radar.Players[player.Entity] = pos;
         }
     }

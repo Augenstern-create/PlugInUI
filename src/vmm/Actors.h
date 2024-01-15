@@ -7,7 +7,7 @@
 #include "VmmCore.h"
 #include "Decrypt.h"
 
-std::vector<DWORD_PTR> GetEntitys();
+std::vector<DWORD_PTR> GetEntitys(DWORD_PTR Actor);
 
 std::vector<int> GetEntityIDs(std::vector<DWORD_PTR> entitys);
 
@@ -37,11 +37,9 @@ std::vector<DWORD_PTR> GetPlayerBones(std::vector<DWORD_PTR> ptr);
 std::vector<FTransform> GetPlayerHeadBones(std::vector<DWORD_PTR> ptr);
 std::vector<FTransform> GetPlayerIndexBones(std::vector<DWORD_PTR> ptr, EBoneIndex index);
 
-std::vector<PlayerSkeletons> GetPlayerAllBones(std::vector<DWORD_PTR> ptr,
-                                               std::vector<FTransform> playerComponentToWorlds);
+std::vector<PlayerSkeletons> GetPlayerAllBones(std::vector<DWORD_PTR> ptr, std::vector<FTransform> playerComponentToWorlds);
 
-std::vector<PlayerSkeletons> GetPlayerAllBones2(std::vector<DWORD_PTR> ptr,
-                                                std::vector<FTransform> playerComponentToWorlds);
+std::vector<PlayerSkeletons> GetPlayerAllBones2(std::vector<DWORD_PTR> ptr, std::vector<FTransform> playerComponentToWorlds);
 
 std::vector<FTransform> GetPlayerComponentToWorlds(std::vector<DWORD_PTR> ptr);
 std::vector<DWORD_PTR> GetItemInformationComponents(std::vector<DWORD_PTR> ptr);

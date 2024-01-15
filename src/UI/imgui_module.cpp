@@ -12,10 +12,33 @@
 #include <d3d11.h>
 #include <cmath>
 #include "imgui_radar.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "glad/glad.h"
+#include "GLFW/glfw3.h"
+#include "GLFW/glfw3native.h"
+#include "game/Bone.h"
+#include "game/Data.h"
 
 namespace ImGui {
 static ImU32 subform_color_ = IM_COL32(41, 43, 56, 128);
 }  // namespace ImGui
+
+void ImGui::RenderCustomSizedText(ImVec2 pos, const char* text, float FontSize, ImU32 Color, const char* text_end, bool hide_text_after_hash) {
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+    const char* text_display_end;
+    if (hide_text_after_hash) {
+        text_display_end = FindRenderedTextEnd(text, text_end);
+    } else {
+        if (!text_end) text_end = text + strlen(text);
+        text_display_end = text_end;
+    }
+    if (text != text_display_end) {
+        window->DrawList->AddText(g.Font, FontSize, pos, Color, text, text_display_end);
+        if (g.LogEnabled) LogRenderedText(&pos, text, text_display_end);
+    }
+}
 
 ImTextureID ImGui::CreateTextureFromImage(const char* imageFilePath, ID3D11Device* device) {
     int width, height, channels;
@@ -75,11 +98,40 @@ ImTextureID ImGui::CreateTextureFromImage(const char* imageFilePath, ID3D11Devic
     return 0;
 }
 
+// 用于加载图像的函数
+unsigned int ImGui::CreateTextureFromImage(const char* path) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
+    if (data) {
+        GLenum format;
+        if (nrChannels == 1)
+            format = GL_RED;
+        else if (nrChannels == 3)
+            format = GL_RGB;
+        else if (nrChannels == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        stbi_image_free(data);
+    } else {
+        // 处理加载失败的情况
+        std::cout << "Failed to load texture" << std::endl;
+    }
+
+    return textureID;
+}
+
 /// @brief 自定义Checkbox控件
 /// @param label
 /// @param value
 /// @return
-bool ImGui::RenderCustomCheckbox(const char* label, bool* value) {
+bool ImGui::RenderCustomCheckbox(const char* label, bool* value, float fontSize) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems) return false;
 
@@ -105,12 +157,10 @@ bool ImGui::RenderCustomCheckbox(const char* label, bool* value) {
         window->DrawList->AddCircleFilled(ImVec2(pos.x + circle_radius, pos.y + circle_radius), circle_radius,
                                           ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
     } else {
-        window->DrawList->AddCircleFilled(ImVec2(pos.x + total_size.x - circle_radius, pos.y + circle_radius),
-                                          circle_radius, ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
+        window->DrawList->AddCircleFilled(ImVec2(pos.x + total_size.x - circle_radius, pos.y + circle_radius), circle_radius,
+                                          ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
     }
-
-    // 在这里绘制Label
-    ImGui::RenderText(ImVec2(pos.x + total_size.x + 2, pos.y), label);
+    ImGui::RenderCustomSizedText(ImVec2(pos.x + total_size.x + 2, pos.y), label, fontSize);
     bool pressed = ImGui::IsItemClicked();
     if (pressed) *value = !*value;
     return pressed;
@@ -122,7 +172,7 @@ bool ImGui::RenderCustomCheckbox(const char* label, bool* value) {
 /// @param min
 /// @param max
 /// @param format
-void ImGui::RenderCustomSlider(const char* label, float* value, float min, float max, const char* format) {
+void ImGui::RenderCustomSlider(const char* label, float* value, float min, float max, float fontSize, const char* format) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems) return;
 
@@ -139,16 +189,13 @@ void ImGui::RenderCustomSlider(const char* label, float* value, float min, float
     const ImVec2 rect_pos(pos.x, pos.y + label_size.y + circle_radius);
     float t = (*value - min) / (max - min);
     // 绘制name txt
-    ImGui::RenderText(ImVec2(pos.x, pos.y), label);
+    ImGui::RenderCustomSizedText(ImVec2(pos.x, pos.y), label, fontSize);
     // 绘制滑块条
-    window->DrawList->AddRectFilled(rect_pos, ImVec2(rect_pos.x + total_size.x, rect_pos.y + total_size.y),
-                                    ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)), 10.0f);
-
-    // 处理拖拽滑块的输入
+    window->DrawList->AddRectFilled(rect_pos, ImVec2(rect_pos.x + total_size.x, rect_pos.y + total_size.y), ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)),
+                                    10.0f);
     bool is_dragging = false;
     std::string string_name = std::string(label) + "slider";
-    ImGui::InvisibleButton(string_name.c_str(), ImVec2(total_size.x, total_size.y + label_size.y + circle_radius +
-                                                                         style.FramePadding.y * 2));
+    ImGui::InvisibleButton(string_name.c_str(), ImVec2(total_size.x, total_size.y + label_size.y + circle_radius + style.FramePadding.y * 2));
     if (ImGui::IsItemActive()) {
         is_dragging = true;
         t = (g.IO.MousePos.x - rect_pos.x) / total_size.x;
@@ -156,16 +203,10 @@ void ImGui::RenderCustomSlider(const char* label, float* value, float min, float
         *value = min + (max - min) * t;
     }
     ImVec2 handle_pos(pos.x + t * total_size.x, pos.y + label_size.y + style.FramePadding.y + circle_radius);
-
-    // 绘制指示器
     window->DrawList->AddCircleFilled(handle_pos, circle_radius, ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
-
     std::string value_c = std::to_string(*value);
     value_c = value_c.substr(0, value_c.find(".") + 3);
-    // 绘制值txt
-    ImGui::RenderText(ImVec2(rect_pos.x + total_size.x + style.FramePadding.x, rect_pos.y - circle_radius),
-                      value_c.c_str());
-    // 如果拖拽滑块结束，更新输入焦点状态
+    ImGui::RenderCustomSizedText(ImVec2(rect_pos.x + total_size.x + style.FramePadding.x, rect_pos.y - circle_radius), value_c.c_str(), fontSize);
     if (!ImGui::IsItemActive()) {
         ImGui::SetItemAllowOverlap();
     }
@@ -177,7 +218,7 @@ void ImGui::RenderCustomSlider(const char* label, float* value, float min, float
 /// @param min
 /// @param max
 /// @param format
-void ImGui::RenderCustomSliderint(const char* label, int* value, int min, int max, const char* format) {
+void ImGui::RenderCustomSliderint(const char* label, int* value, int min, int max, float fontSize, const char* format) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems) return;
 
@@ -194,17 +235,16 @@ void ImGui::RenderCustomSliderint(const char* label, int* value, int min, int ma
     const ImVec2 rect_pos(pos.x, pos.y + label_size.y + circle_radius);
     float t = (float)((float)(*value - min) / (float)(max - min));
     // 绘制name txt
-    ImGui::RenderText(ImVec2(pos.x, pos.y), label);
+    ImGui::RenderCustomSizedText(ImVec2(pos.x, pos.y), label, fontSize);
 
     // 绘制滑块条
-    window->DrawList->AddRectFilled(rect_pos, ImVec2(rect_pos.x + total_size.x, rect_pos.y + total_size.y),
-                                    ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)), 10.0f);
+    window->DrawList->AddRectFilled(rect_pos, ImVec2(rect_pos.x + total_size.x, rect_pos.y + total_size.y), ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)),
+                                    10.0f);
 
     // 处理拖拽滑块的输入
     bool is_dragging = false;
     std::string string_name = std::string(label) + "slider";
-    ImGui::InvisibleButton(string_name.c_str(), ImVec2(total_size.x, total_size.y + label_size.y + circle_radius +
-                                                                         style.FramePadding.y * 2));
+    ImGui::InvisibleButton(string_name.c_str(), ImVec2(total_size.x, total_size.y + label_size.y + circle_radius + style.FramePadding.y * 2));
     if (ImGui::IsItemActive()) {
         is_dragging = true;
         t = (g.IO.MousePos.x - rect_pos.x) / total_size.x;
@@ -218,8 +258,7 @@ void ImGui::RenderCustomSliderint(const char* label, int* value, int min, int ma
 
     std::string value_c = std::to_string(*value);
     // 绘制值txt
-    ImGui::RenderText(ImVec2(rect_pos.x + total_size.x + style.FramePadding.x, rect_pos.y - circle_radius),
-                      value_c.c_str());
+    ImGui::RenderCustomSizedText(ImVec2(rect_pos.x + total_size.x + style.FramePadding.x, rect_pos.y - circle_radius), value_c.c_str(), fontSize);
     // 如果拖拽滑块结束，更新输入焦点状态
     if (!ImGui::IsItemActive()) {
         ImGui::SetItemAllowOverlap();
@@ -230,9 +269,8 @@ ImVec2 ImGui::ImVec2ADD(const ImVec2 a, const ImVec2 b) { return ImVec2(a.x + b.
 ImVec2 ImGui::ImVec2Decrease(const ImVec2 a, const ImVec2 b) { return ImVec2(a.x - b.x, a.y - b.y); }
 ImVec2 ImGui::ImVec2Multiply(const ImVec2 a, float b) { return ImVec2(a.x * b, a.y * b); }
 ImVec2 ImGui::ImVec2Except(const ImVec2 a, ImVec2 b) { return ImVec2(a.x / b.x, a.y / b.y); }
-bool ImGui::RenderCustomButton(const char* str_id, ImTextureID user_texture_id, const ImVec2& size,
-                               const ImVec4& bg_col, const ImVec4& tint_col, const ImU32 col, const ImVec2& uv0,
-                               const ImVec2& uv1, ImGuiButtonFlags flags) {
+bool ImGui::RenderCustomButton(const char* str_id, ImTextureID user_texture_id, const ImVec2& size, const ImVec4& bg_col, const ImVec4& tint_col,
+                               const ImU32 col, const ImVec2& uv0, const ImVec2& uv1, ImGuiButtonFlags flags) {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
     if (window->SkipItems) return false;
@@ -249,17 +287,13 @@ bool ImGui::RenderCustomButton(const char* str_id, ImTextureID user_texture_id, 
     bool pressed = ButtonBehavior(bb, id, &hovered, &held, flags);
     RenderNavHighlight(bb, id);
     RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, g.Style.FrameRounding));
-    if (bg_col.w > 0.0f)
-        window->DrawList->AddRectFilled(ImVec2ADD(bb.Min, padding), ImVec2Decrease(bb.Max, padding),
-                                        GetColorU32(bg_col));
-    window->DrawList->AddImage(user_texture_id, ImVec2ADD(bb.Min, padding), ImVec2Decrease(bb.Max, padding), uv0, uv1,
-                               GetColorU32(tint_col));
+    if (bg_col.w > 0.0f) window->DrawList->AddRectFilled(ImVec2ADD(bb.Min, padding), ImVec2Decrease(bb.Max, padding), GetColorU32(bg_col));
+    window->DrawList->AddImage(user_texture_id, ImVec2ADD(bb.Min, padding), ImVec2Decrease(bb.Max, padding), uv0, uv1, GetColorU32(tint_col));
 
     return pressed;
 }
 
-void ImGui::RenderRoundedRect(ImDrawList* drawList, ImVec2 pMin, ImVec2 pMax, float rounding, ImU32 borderColor,
-                              float borderSize) {
+void ImGui::RenderRoundedRect(ImDrawList* drawList, ImVec2 pMin, ImVec2 pMax, float rounding, ImU32 borderColor, float borderSize) {
     drawList->AddRectFilled(pMin, pMax, subform_color_, rounding);
 
     if (borderSize > 0) drawList->AddRect(pMin, pMax, borderColor, ImDrawFlags_RoundCornersAll, borderSize);
@@ -268,21 +302,30 @@ void ImGui::RenderRoundedRect(ImDrawList* drawList, ImVec2 pMin, ImVec2 pMax, fl
 float DegToRad(float degrees) { return degrees * 3.1415926535f / 180.0f; }
 
 void ImGui::DrawRotatedTriangle(ImDrawList* drawList, ImVec2 center, float side, float rotationAngle, ImU32 color) {
+    // 计算三角形的高度
     float height = side * 0.6f * sqrt(3.0f);
+
+    // 计算底部的中心点坐标
     ImVec2 baseCenter = ImVec2(center.x, center.y + height / 2);
+
+    // 计算三角形的顶点坐标
     ImVec2 p0(center.x, center.y - height / 2);
     ImVec2 p1(center.x - side / 2, center.y + height / 2);
     ImVec2 p2(center.x + side / 2, center.y + height / 2);
+
+    // 将角度转换为弧度值
+    rotationAngle += 90.0f;  // 设置右侧为顶点
     float rotationAngleRad = rotationAngle * 3.14159265358979323846f / 180.0f;
-    ImVec2 rotatedP0(
-        center.x + (p0.x - baseCenter.x) * cos(rotationAngleRad) - (p0.y - baseCenter.y) * sin(rotationAngleRad),
-        center.y + (p0.x - baseCenter.x) * sin(rotationAngleRad) + (p0.y - baseCenter.y) * cos(rotationAngleRad));
-    ImVec2 rotatedP1(
-        center.x + (p1.x - baseCenter.x) * cos(rotationAngleRad) - (p1.y - baseCenter.y) * sin(rotationAngleRad),
-        center.y + (p1.x - baseCenter.x) * sin(rotationAngleRad) + (p1.y - baseCenter.y) * cos(rotationAngleRad));
-    ImVec2 rotatedP2(
-        center.x + (p2.x - baseCenter.x) * cos(rotationAngleRad) - (p2.y - baseCenter.y) * sin(rotationAngleRad),
-        center.y + (p2.x - baseCenter.x) * sin(rotationAngleRad) + (p2.y - baseCenter.y) * cos(rotationAngleRad));
+
+    // 计算旋转后的三角形顶点坐标
+    ImVec2 rotatedP0(center.x + (p0.x - baseCenter.x) * cos(rotationAngleRad) - (p0.y - baseCenter.y) * sin(rotationAngleRad),
+                     center.y + (p0.x - baseCenter.x) * sin(rotationAngleRad) + (p0.y - baseCenter.y) * cos(rotationAngleRad));
+    ImVec2 rotatedP1(center.x + (p1.x - baseCenter.x) * cos(rotationAngleRad) - (p1.y - baseCenter.y) * sin(rotationAngleRad),
+                     center.y + (p1.x - baseCenter.x) * sin(rotationAngleRad) + (p1.y - baseCenter.y) * cos(rotationAngleRad));
+    ImVec2 rotatedP2(center.x + (p2.x - baseCenter.x) * cos(rotationAngleRad) - (p2.y - baseCenter.y) * sin(rotationAngleRad),
+                     center.y + (p2.x - baseCenter.x) * sin(rotationAngleRad) + (p2.y - baseCenter.y) * cos(rotationAngleRad));
+
+    // 在给定的ImDrawList中绘制旋转后的三角形
     drawList->AddTriangleFilled(rotatedP0, rotatedP1, rotatedP2, color);
 }
 
@@ -292,5 +335,100 @@ void ImGui::PlayerDisplay(const char* label, float size, float direction, ImVec2
     ImGui::DrawRotatedTriangle(window->DrawList, location, size * 2.0f, direction, color);
     window->DrawList->AddCircleFilled(location, size, color);
     ImGui::RenderText(ImVec2(location.x, location.y), label);
+}
+
+// 绘制玩家名称
+void ImGui::DrawPlayerName(const char* txt, ImVec2 pos, float size, ImU32 color) { ImGui::RenderCustomSizedText(pos, txt, size, color); }
+
+// 绘制距离
+void ImGui::DrawPlayerDistance(const char* txt, ImVec2 pos, float size, ImU32 color) { ImGui::RenderCustomSizedText(pos, txt, size, color); }
+
+// 绘制队伍id
+void ImGui::DrawPlayerTeamID(const char* txt, ImVec2 pos, ImVec2 pos2, float size, ImU32 color) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return;
+    window->DrawList->AddCircleFilled(pos2, size, color);
+    ImGui::RenderCustomSizedText(pos, txt, size, color);
+}
+
+// 绘制血量
+void ImGui::DrawPlayerHitPoint(int HP, ImVec2 pos, float size, ImU32 color, ImU32 color2) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return;
+    HP = HP > 100.0f ? 100.0f : HP;
+    HP = HP < 0.0f ? 0.0f : HP;
+    ImVec2 HPPos1 = {pos.x - 50.0f, pos.y - 20.0f};
+    ImVec2 HPPos2 = {pos.x + 50.0f, pos.y - 10.0f};
+    ImVec2 HPPos3 = {HPPos1.x + (HP), pos.y - 10.0f};
+    window->DrawList->AddRectFilled(HPPos1, HPPos2, color2);
+    if (HP != 100.0f) window->DrawList->AddRectFilled(HPPos1, HPPos3, color);
+}
+
+// 绘制武器
+void ImGui::DrawPlayerArms(ImTextureID textureID, ImVec2 pos, ImVec2 size) {
+    ImGui::SetCursorPos(pos);
+    ImGui::Image(textureID, size);
+}
+
+// 方框
+void ImGui::DrawPlayerBox(ImVec2 startPos, ImVec2 stopPos, ImVec2 Screen, ImU32 color) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return;
+    if (startPos.x < 0 || startPos.y < 0 || stopPos.x > Screen.x || stopPos.y > Screen.y) return;
+    window->DrawList->AddRectFilled(ImVec2(startPos.x, startPos.y), ImVec2(stopPos.x, startPos.y), color, 2.0f);
+    window->DrawList->AddRectFilled(ImVec2(startPos.x, startPos.y), ImVec2(startPos.x, stopPos.y), color, 2.0f);
+    window->DrawList->AddRectFilled(ImVec2(startPos.x, stopPos.y), ImVec2(stopPos.x, stopPos.y), color, 2.0f);
+    window->DrawList->AddRectFilled(ImVec2(stopPos.x, startPos.y), ImVec2(stopPos.x, stopPos.y), color, 2.0f);
+}
+
+void ImGui::DrawPlayerBones(const char* label, float size, std::unordered_map<int, Vector3> location, ImVec2 Screen, ImU32 color) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return;
+
+    for (const auto& pair : location) {
+        const Vector3& vector = pair.second;
+        if (vector.x < 0 || vector.x > Screen.x || vector.y < 0 || vector.y > Screen.y) {
+            return;
+        }
+    }
+
+    // 头
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::forehead].x, location[EBoneIndex::forehead].y),
+                              ImVec2(location[EBoneIndex::head].x, location[EBoneIndex::head].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::head].x, location[EBoneIndex::head].y),
+                              ImVec2(location[EBoneIndex::neck_01].x, location[EBoneIndex::neck_01].y), color, size);
+    // 右臂
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::neck_01].x, location[EBoneIndex::neck_01].y),
+                              ImVec2(location[EBoneIndex::upperarm_r].x, location[EBoneIndex::upperarm_r].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::upperarm_r].x, location[EBoneIndex::upperarm_r].y),
+                              ImVec2(location[EBoneIndex::lowerarm_r].x, location[EBoneIndex::lowerarm_r].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::lowerarm_r].x, location[EBoneIndex::lowerarm_r].y),
+                              ImVec2(location[EBoneIndex::hand_r].x, location[EBoneIndex::hand_r].y), color, size);
+    // 左臂
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::neck_01].x, location[EBoneIndex::neck_01].y),
+                              ImVec2(location[EBoneIndex::upperarm_l].x, location[EBoneIndex::upperarm_l].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::upperarm_l].x, location[EBoneIndex::upperarm_l].y),
+                              ImVec2(location[EBoneIndex::lowerarm_l].x, location[EBoneIndex::lowerarm_l].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::lowerarm_l].x, location[EBoneIndex::lowerarm_l].y),
+                              ImVec2(location[EBoneIndex::hand_l].x, location[EBoneIndex::hand_l].y), color, size);
+    // 脊椎
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::neck_01].x, location[EBoneIndex::neck_01].y),
+                              ImVec2(location[EBoneIndex::spine_01].x, location[EBoneIndex::spine_01].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::spine_01].x, location[EBoneIndex::spine_01].y),
+                              ImVec2(location[EBoneIndex::pelvis].x, location[EBoneIndex::pelvis].y), color, size);
+    // 右腿
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::pelvis].x, location[EBoneIndex::pelvis].y),
+                              ImVec2(location[EBoneIndex::thigh_r].x, location[EBoneIndex::thigh_r].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::thigh_r].x, location[EBoneIndex::thigh_r].y),
+                              ImVec2(location[EBoneIndex::calf_r].x, location[EBoneIndex::calf_r].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::calf_r].x, location[EBoneIndex::calf_r].y),
+                              ImVec2(location[EBoneIndex::foot_r].x, location[EBoneIndex::foot_r].y), color, size);
+    // 左腿
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::pelvis].x, location[EBoneIndex::pelvis].y),
+                              ImVec2(location[EBoneIndex::thigh_l].x, location[EBoneIndex::thigh_l].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::thigh_l].x, location[EBoneIndex::thigh_l].y),
+                              ImVec2(location[EBoneIndex::calf_l].x, location[EBoneIndex::calf_l].y), color, size);
+    window->DrawList->AddLine(ImVec2(location[EBoneIndex::calf_l].x, location[EBoneIndex::calf_l].y),
+                              ImVec2(location[EBoneIndex::foot_l].x, location[EBoneIndex::foot_l].y), color, size);
 }
 #endif  // #ifndef IMGUI_DISABLE

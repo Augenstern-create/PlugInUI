@@ -17,14 +17,15 @@
 #define TAG "PLuiinUI"
 
 #define LOGFILE(level, fmt, tag, ...) printf(("\n%s/%s:" fmt), level, tag, ##__VA_ARGS__);
+#define LOGFD(fmt, ...) printf(("%s" fmt), ##__VA_ARGS__);
 
-#define LOGDL(fmt, tag, ...) LOGFILE("D", fmt, tag, ##__VA_ARGS__)
+#define LOGDL(fmt, ...) LOGFD(fmt, ##__VA_ARGS__)
 
 #define LOGIL(fmt, tag, ...) LOGFILE("I", fmt, tag, ##__VA_ARGS__)
 #define LOGEL(fmt, tag, ...) LOGFILE("E", fmt, tag, ##__VA_ARGS__)
 
 //---start define project using macro.=====================
-#define LSO_LOGD(fmt, ...) LOGDL(fmt, TAG, ##__VA_ARGS__);
+#define LSO_LOGD(fmt, ...) LOGDL(fmt, ##__VA_ARGS__);
 #define LSO_LOGI(fmt, ...) LOGIL(fmt, TAG, ##__VA_ARGS__);
 #define LSO_LOGE(fmt, ...) LOGEL(fmt, TAG, ##__VA_ARGS__);
 

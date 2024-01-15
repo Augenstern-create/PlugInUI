@@ -13,7 +13,7 @@ struct DProcess {
 };
 
 BOOL VmmCore::Initialize() {
-    LPSTR args[] = {(LPSTR) "-norefresh", (LPSTR) "-device", (LPSTR) "fpga"};
+    LPSTR args[] = {(LPSTR) "-norefresh", (LPSTR) "-device", (LPSTR) "fpga", (LPSTR) "-printf", (LPSTR) "-v"};
     DWORD argc = sizeof(args) / sizeof(args[0]);
     hVMM = VMMDLL_Initialize(argc, args);
     if (hVMM == 0) {
@@ -98,6 +98,7 @@ BOOL VmmCore::InitScatterHandles() {
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
+
     return scatterhandles.size() > 0;
 }
 
@@ -120,12 +121,10 @@ DWORD VmmCore::GetCsrssPID() {
         for (unsigned int i = 0; i < cProcessInformation; i++) {
             pProcessInformationEntry = &pProcessInformationAll[i];
             if (strcmp(pProcessInformationEntry->szName, "csrss.exe") == 0) {
-                gafAsyncKeyState = VMMDLL_ProcessGetProcAddressU(hVMM, pProcessInformationEntry->dwPID,
-                                                                 (LPSTR) "win32kbase.sys", (LPSTR) "gafAsyncKeyState");
+                gafAsyncKeyState = VMMDLL_ProcessGetProcAddressU(hVMM, pProcessInformationEntry->dwPID, (LPSTR) "win32kbase.sys", (LPSTR) "gafAsyncKeyState");
                 if (gafAsyncKeyState) {
-                    result =
-                        VMMDLL_MemReadEx(hVMM, pProcessInformationEntry->dwPID, gafAsyncKeyState,
-                                         (PBYTE)&keyStateBitmap, sizeof(keyStateBitmap), NULL, VMMDLL_FLAG_NOCACHE);
+                    result = VMMDLL_MemReadEx(hVMM, pProcessInformationEntry->dwPID, gafAsyncKeyState, (PBYTE)&keyStateBitmap, sizeof(keyStateBitmap), NULL,
+                                              VMMDLL_FLAG_NOCACHE);
                     if (keyStateBitmap[0x24] == '\x2') {
                         csrssPid = pProcessInformationEntry->dwPID;
                         break;
@@ -139,18 +138,14 @@ DWORD VmmCore::GetCsrssPID() {
 }
 
 BOOL VmmCore::ReadByte(DWORD_PTR address, PVOID buffer, DWORD_PTR length) {
-    return VMMDLL_MemReadEx(hVMM, (DWORD)(QWORD)pid, address, (PBYTE)buffer, (DWORD)length, 0,
-                            VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO);
+    return VMMDLL_MemReadEx(hVMM, (DWORD)(QWORD)pid, address, (PBYTE)buffer, (DWORD)length, 0, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO);
 }
 
 BOOL VmmCore::ReadProcessByte(DWORD pid, DWORD_PTR address, PVOID buffer, DWORD_PTR length) {
-    return VMMDLL_MemReadEx(hVMM, (DWORD)(QWORD)pid, address, (PBYTE)buffer, (DWORD)length, 0,
-                            VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO);
+    return VMMDLL_MemReadEx(hVMM, (DWORD)(QWORD)pid, address, (PBYTE)buffer, (DWORD)length, 0, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO);
 }
 
-void VmmCore::ScatterPrepare(VMMDLL_SCATTER_HANDLE hs, DWORD_PTR address, DWORD_PTR length) {
-    VMMDLL_Scatter_Prepare(hs, address, length);
-}
+void VmmCore::ScatterPrepare(VMMDLL_SCATTER_HANDLE hs, DWORD_PTR address, DWORD_PTR length) { VMMDLL_Scatter_Prepare(hs, address, length); }
 
 void VmmCore::ScatterExecuteRead(VMMDLL_SCATTER_HANDLE hs) { VMMDLL_Scatter_ExecuteRead(hs); }
 
@@ -158,9 +153,7 @@ void VmmCore::ScatterReadByte(VMMDLL_SCATTER_HANDLE hs, DWORD_PTR address, PVOID
     VMMDLL_Scatter_Read(hs, address, (DWORD)length, (PBYTE)buffer, NULL);
 }
 
-void VmmCore::ScatterClear(VMMDLL_SCATTER_HANDLE hs) {
-    VMMDLL_Scatter_Clear(hs, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO);
-}
+void VmmCore::ScatterClear(VMMDLL_SCATTER_HANDLE hs) { VMMDLL_Scatter_Clear(hs, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO); }
 
 void VmmCore::Clear() {
     for (auto hs : scatterhandles) {
@@ -198,8 +191,7 @@ template BOOL VmmCore::ReadScatterBytes(std::vector<DWORD_PTR>& AddrVector, _Out
 template BOOL VmmCore::ReadScatterBytes(std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<DWORD_PTR>& Array);
 
 template <typename T>
-BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                               _Out_ std::vector<T>& Array, DWORD_PTR length) {
+BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<T>& Array, DWORD_PTR length) {
     for (int i = 0; i < AddrVector.size(); i++) {
         if (length) {
             VMMDLL_Scatter_Prepare(Handle, AddrVector.at(i), length);
@@ -221,20 +213,15 @@ BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_P
     return true;
 }
 
-template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                        _Out_ std::vector<int>& Array, DWORD_PTR length);
-template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                        _Out_ std::vector<Vector3>& Array, DWORD_PTR length);
-template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                        _Out_ std::vector<FTransform>& Array, DWORD_PTR length);
-template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                        _Out_ std::vector<float>& Array, DWORD_PTR length);
-template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                        _Out_ std::vector<FText>& Array, DWORD_PTR length);
-template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                        _Out_ std::vector<DWORD_PTR>& Array, DWORD_PTR length);
-template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                        _Out_ std::vector<FRotator>& Array, DWORD_PTR length);
+template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<int>& Array, DWORD_PTR length);
+template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<Vector3>& Array, DWORD_PTR length);
+template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<FTransform>& Array,
+                                        DWORD_PTR length);
+template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<float>& Array, DWORD_PTR length);
+template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<FText>& Array, DWORD_PTR length);
+template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<DWORD_PTR>& Array,
+                                        DWORD_PTR length);
+template BOOL VmmCore::ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<FRotator>& Array, DWORD_PTR length);
 
 template <typename T>
 T VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex, DWORD_PTR length) {
@@ -249,15 +236,9 @@ T VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleInde
     return results;
 }
 
-template std::vector<DWORD_PTR> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex,
-                                                   DWORD_PTR length);
-template std::vector<int> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex,
-                                             DWORD_PTR length);
-template std::vector<Vector3> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex,
-                                                 DWORD_PTR length);
-template std::vector<float> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex,
-                                               DWORD_PTR length);
-template std::vector<ECharacterState> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex,
-                                                         DWORD_PTR length);
-template std::vector<FRotator> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex,
-                                                  DWORD_PTR length);
+template std::vector<DWORD_PTR> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex, DWORD_PTR length);
+template std::vector<int> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex, DWORD_PTR length);
+template std::vector<Vector3> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex, DWORD_PTR length);
+template std::vector<float> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex, DWORD_PTR length);
+template std::vector<ECharacterState> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex, DWORD_PTR length);
+template std::vector<FRotator> VmmCore::BatchRead(std::vector<DWORD_PTR> ptr, uint32_t offset, int handleIndex, DWORD_PTR length);

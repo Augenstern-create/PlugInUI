@@ -1,309 +1,354 @@
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include "Include.h"
 #include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx11.h"
-#include <d3d11.h>
-#include <tchar.h>
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "glad/glad.h"
+#include "GLFW/glfw3.h"
+#include "GLFW/glfw3native.h"
 
 #include "UIMain.h"
-#include "Include.h"
+#include "imgui_menu.h"
 #include "imgui_radar.h"
 #include "imgui_module.h"
+#include <ShellScalingApi.h>
 
+#include "game/Data.h"
+#include "imgui_debug.h"
+#include "imgui_skeleton.h"
+
+static std::string CurrentDirectory;
 // imgui
 namespace ImGui {
-ImTextureID Map = nullptr;
+unsigned int Map = 0;
 }  // namespace ImGui
 
-struct WindowData {
-    WNDCLASSEXW wc;
-    HWND hwnd;
-    ID3D11Device* device;
-    ID3D11DeviceContext* deviceContext;
-    IDXGISwapChain* swapChain;
-    ID3D11RenderTargetView* RenderTargetView;
-    float width;
-    float height;
-    float clear_color_with_alpha[4];
-
+class WindowData {
+   public:
+    GLFWwindow* windows_;
+    HWND hwnd_;
+    LONG style_;
+    ImGuiContext* context_;
+    ImGuiIO* io_;
+    ImFont* font_;
+    int width_;
+    int height_;
+    std::string font_path_;
+    std::string font_name_;
+    std::string windows_name_;
     WindowData()
-        : hwnd(nullptr),
-          device(nullptr),
-          deviceContext(nullptr),
-          swapChain(nullptr),
-          RenderTargetView(nullptr),
-          width((float)GetSystemMetrics(SM_CXSCREEN)),
-          height((float)GetSystemMetrics(SM_CYSCREEN)),
-          clear_color_with_alpha{0.45f, 0.55f, 0.60f, 1.00f} {
-        ZeroMemory(&wc, sizeof(wc));
+        : windows_(nullptr),
+          hwnd_(nullptr),
+          style_(0),
+          context_(nullptr),
+          io_(nullptr),
+          width_((int)GetSystemMetrics(SM_CXSCREEN)),
+          height_((int)GetSystemMetrics(SM_CYSCREEN)) {
+        std::filesystem::path currentPath = std::filesystem::current_path();
+        std::string run_path = currentPath.string();
+        font_path_ = run_path + "\\DouyinSansBold.otf";
+    }
+    ~WindowData() = default;
+    bool InitForm(bool mes) {
+        windows_ = glfwCreateWindow(width_, height_, windows_name_.c_str(), NULL, NULL);
+        if (!windows_) {
+            LOGE("Failed to create GLFW window 1\n");
+            return false;
+        }
+        IMGUI_CHECKVERSION();
+        context_ = ImGui::CreateContext();
+        io_ = &ImGui::GetIO();
+        (void)io_;
+        io_->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+        io_->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+        ImGui::SetCurrentContext(context_);
+        glfwMakeContextCurrent(windows_);
+        ImGui_ImplGlfw_InitForOpenGL(windows_, mes);
+        ImGui_ImplOpenGL3_Init();
+        hwnd_ = glfwGetWin32Window(windows_);
+        style_ = GetWindowLong(hwnd_, GWL_EXSTYLE);
+        glfwSwapInterval(0);
+
+        io_->IniFilename = nullptr;
+        ImFontConfig Font_cfg;
+        Font_cfg.FontDataOwnedByAtlas = false;
+        float fontSize = 18.0f;
+        font_ = io_->Fonts->AddFontFromFileTTF(font_path_.c_str(), fontSize, &Font_cfg, io_->Fonts->GetGlyphRangesChineseFull());
+        if (font_ == NULL) {
+            LOGE("Failed to load font from file: %s\n", font_path_.c_str());
+            font_ = io_->Fonts->AddFontDefault();
+        }
+        return true;
+    }
+    bool SwitchContext() {
+        if (context_ && windows_) {
+            ImGui::SetCurrentContext(context_);
+            glfwMakeContextCurrent(windows_);
+            return true;
+        }
+        return false;
     }
     void Release() {
-        if (RenderTargetView) {
-            RenderTargetView->Release();
-            RenderTargetView = nullptr;
+        if (context_ && windows_) {
+            ImGui::SetCurrentContext(context_);
+            glfwMakeContextCurrent(windows_);
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplGlfw_Shutdown();
+            ImGui::DestroyContext(context_);
+            glfwDestroyWindow(windows_);
+        } else if (windows_) {
+            glfwMakeContextCurrent(windows_);
+            glfwDestroyWindow(windows_);
         }
-        if (swapChain) {
-            swapChain->Release();
-            swapChain = nullptr;
-        }
-        if (deviceContext) {
-            deviceContext->Release();
-            deviceContext = nullptr;
-        }
-        if (device) {
-            device->Release();
-            device = nullptr;
-        }
-        if (hwnd) {
-            ::DestroyWindow(hwnd);
-            hwnd = nullptr;
-        }
-        ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-        width = 0;
-        height = 0;
     }
 };
 
-// 初始化窗体数据
-WindowData mainWndData;
-WindowData detachedWndData;
+static WindowData g_main_form;
+static WindowData g_detached_form;
+static std::string g_Path = "\\photograph\\Weapon";
 
-bool CreateRenderTargetForWindow(WindowData* WndData) {
-    ID3D11Texture2D* pBackBuffer = nullptr;
-    if (SUCCEEDED(WndData->swapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer)))) {
-        if (FAILED(WndData->device->CreateRenderTargetView(pBackBuffer, nullptr, &WndData->RenderTargetView))) {
-            LOGE("Window rendering failure...\n");
-            return false;
+int UIPlay() {
+    if (!glfwInit()) {
+        LOGE("Failed to initialize GLFW\n");
+        return -1;
+    }
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
+
+    // Create the first window
+    int borderAndTitleHeight = (GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYFIXEDFRAME)) * 3;
+    g_main_form.width_ = g_main_form.height_ - borderAndTitleHeight;
+    g_main_form.height_ -= borderAndTitleHeight;
+    g_main_form.windows_name_ = "Read";
+    g_main_form.font_name_ = "\\DouyinSansBold.otf";
+    if (!g_main_form.InitForm(true)) {
+        glfwTerminate();
+        return -1;
+    }
+    g_detached_form.windows_name_ = "Skeleton";
+    g_detached_form.font_name_ = "\\DouyinSansBold2.otf";
+    if (!g_detached_form.InitForm(false)) {
+        g_main_form.Release();
+        glfwTerminate();
+        return -1;
+    }
+    g_main_form.SwitchContext();
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        LOGE("Failed to initialize GLAD for window 2\n");
+        g_main_form.Release();
+        g_detached_form.Release();
+        glfwTerminate();
+        return -1;
+    }
+    glfwHideWindow(g_detached_form.windows_);
+    glfwFocusWindow(g_main_form.windows_);
+    std::filesystem::path currentPath = std::filesystem::current_path();
+    std::string CurrentDirectory = currentPath.string();
+    g_detached_form.SwitchContext();
+    std::string texture_path = CurrentDirectory + g_Path;
+    Weapon::LoadTexture(texture_path);
+    gameData.ScreenWidth = g_detached_form.width_;
+    gameData.ScreenHeight = g_detached_form.height_;
+    SetWindowLong(g_detached_form.hwnd_, GWL_STYLE, WS_POPUP);
+    // SetWindowLongPtr(g_detached_form.hwnd_, GWL_EXSTYLE, WS_EX_TRANSPARENT);
+    while (!glfwWindowShouldClose(g_main_form.windows_) && !glfwWindowShouldClose(g_detached_form.windows_)) {
+        //
+        g_main_form.SwitchContext();
+        glfwPollEvents();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui::NewFrame();
+        bool show_menu_window = true;
+        bool show_radar_window = true;
+        bool show_debug_window = true;
+        bool show_skeleton_window = true;
+        ImGui::ShowDebugWindow(&show_debug_window, ImVec2((float)g_main_form.width_, (float)g_main_form.height_));
+        if (show_menu_window) {
+            ImGui::ShowMenuWindow(&show_menu_window, ImVec2((float)g_main_form.width_, (float)g_main_form.height_));
         }
-        pBackBuffer->Release();
-        return true;
-    }
-    return false;
-}
-
-bool CreateDeviceD3D(WindowData* WndData) {
-    // Setup swap chain
-    DXGI_SWAP_CHAIN_DESC sd;
-    ZeroMemory(&sd, sizeof(sd));
-    sd.BufferCount = 2;
-    sd.BufferDesc.Width = 0;
-    sd.BufferDesc.Height = 0;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferDesc.RefreshRate.Numerator = 60;
-    sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = WndData->hwnd;
-    sd.SampleDesc.Count = 1;
-    sd.SampleDesc.Quality = 0;
-    sd.Windowed = TRUE;
-    sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-    UINT createDeviceFlags = 0;
-    // createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-    D3D_FEATURE_LEVEL featureLevel;
-    const D3D_FEATURE_LEVEL featureLevelArray[2] = {
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_0,
-    };
-    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
-                                                featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &WndData->swapChain,
-                                                &WndData->device, &featureLevel, &WndData->deviceContext);
-    if (res == DXGI_ERROR_UNSUPPORTED)  // Try high-performance WARP software driver if hardware is not available.
-        res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags,
-                                            featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &WndData->swapChain,
-                                            &WndData->device, &featureLevel, &WndData->deviceContext);
-    if (res != S_OK) return false;
-
-    return CreateRenderTargetForWindow(WndData);
-}
-
-// Forward declare message handler from imgui_impl_win32.cpp
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-LRESULT WINAPI MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-        case WM_SYSCOMMAND:
-            if ((wParam & 0xfff0) == SC_KEYMENU)  // Disable ALT application menu
-                return 0;
-            break;
-        case WM_DESTROY:
-            ::PostQuitMessage(0);
-            return 0;
-        case WM_CLOSE:
-            DestroyWindow(hWnd);
-            return 0;
-    }
-
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) return true;
-
-    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
-}
-
-LRESULT WINAPI DetachedWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-        case WM_SYSCOMMAND:
-            if ((wParam & 0xfff0) == SC_KEYMENU)  // Disable ALT application menu
-                return 0;
-            break;
-        case WM_DESTROY:
-            ::PostQuitMessage(0);
-            return 0;
-        case WM_CLOSE:
-            DestroyWindow(hWnd);
-            return 0;
-    }
-
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) return true;
-
-    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
-}
-
-bool InitMainWindow(WindowData* WindData) {
-    WindData->wc = {sizeof(WindData->wc),     CS_CLASSDC, MainWndProc, 0L,      0L,
-                    GetModuleHandle(nullptr), nullptr,    nullptr,     nullptr, nullptr,
-                    L"MainWindowClass",       nullptr};
-    ::RegisterClassExW(&WindData->wc);
-    WindData->hwnd = ::CreateWindowW(WindData->wc.lpszClassName, L"ImGui Tool", WS_OVERLAPPEDWINDOW,
-                                     (WindData->width - WindData->height) * 0.5f, 0, WindData->height, WindData->height,
-                                     NULL, NULL, WindData->wc.hInstance, NULL);
-    if (!CreateDeviceD3D(WindData)) {
-        WindData->Release();
-        LOGE("Window hwndMain initialization failed. Procedure...\n");
-        return false;
-    }
-    // Disable resizing for the main window
-    LONG_PTR style = GetWindowLongPtr(WindData->hwnd, GWL_STYLE);
-    style &= ~WS_THICKFRAME;  // Disable resizing
-    SetWindowLongPtr(WindData->hwnd, GWL_STYLE, style);
-
-    // Show the main window
-    ::ShowWindow(WindData->hwnd, SW_SHOWDEFAULT);
-    ::UpdateWindow(WindData->hwnd);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-
-    ImGui::StyleColorsDark();
-    ImGui_ImplWin32_Init(WindData->hwnd);
-    ImGui_ImplDX11_Init(WindData->device, WindData->deviceContext);
-    return true;
-}
-
-bool InitDetachedWindow(WindowData* DetachedWindData) {
-    DetachedWindData->wc = {sizeof(DetachedWindData->wc), CS_CLASSDC, DetachedWndProc, 0L,      0L,
-                            GetModuleHandle(nullptr),     nullptr,    nullptr,         nullptr, nullptr,
-                            L"DetachedWindowClass",       nullptr};
-    ::RegisterClassExW(&DetachedWindData->wc);
-    DetachedWindData->hwnd = ::CreateWindowW(DetachedWindData->wc.lpszClassName, L"ImGui Debug", WS_OVERLAPPEDWINDOW, 0,
-                                             0, DetachedWindData->width / 2, DetachedWindData->height, NULL, NULL,
-                                             DetachedWindData->wc.hInstance, NULL);
-    if (!CreateDeviceD3D(DetachedWindData)) {
-        DetachedWindData->Release();
-        LOGE("Window hwndMain initialization failed. Procedure...\n");
-        return false;
-    }
-    // Disable resizing for the main window
-    LONG_PTR style = GetWindowLongPtr(DetachedWindData->hwnd, GWL_STYLE);
-    style &= ~WS_THICKFRAME;  // Disable resizing
-    SetWindowLongPtr(DetachedWindData->hwnd, GWL_STYLE, style);
-
-    // Show the main window
-    ::ShowWindow(DetachedWindData->hwnd, SW_SHOWDEFAULT);
-    ::UpdateWindow(DetachedWindData->hwnd);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-
-    ImGui::StyleColorsDark();
-    ImGui_ImplWin32_Init(DetachedWindData->hwnd);
-    ImGui_ImplDX11_Init(DetachedWindData->device, DetachedWindData->deviceContext);
-    float clearColor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    memcpy(DetachedWindData->clear_color_with_alpha, clearColor, sizeof(DetachedWindData->clear_color_with_alpha));
-
-    return true;
-}
-
-bool InitImGui() {
-    // // Create main window
-    if (!InitMainWindow(&mainWndData)) return false;
-    // if (!InitDetachedWindow(&detachedWndData)) return false;
-    return true;
-}
-
-// 渲染 ImGui 内容
-void MainRenderImGui(WindowData* WindData) {
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-    // Main ImGui content for the main window
-    ImGui::Begin("Main Window");
-    ImGui::Text("Hello from Main Window!");
-    ImGui::End();
-
-    ImGui::Render();
-    // Render ImGui for the main window
-    WindData->deviceContext->OMSetRenderTargets(1, &WindData->RenderTargetView, nullptr);
-    WindData->deviceContext->ClearRenderTargetView(WindData->RenderTargetView,
-                                                   (float*)&WindData->clear_color_with_alpha);
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    WindData->swapChain->Present(1, 0);  // Present with vsync
-    //  WindData->swapChain->Present(0, 0); // Present without vsync
-}
-void DetachedRenderImGui(WindowData* WindData) {
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-    // Main ImGui content for the main window
-    ImGui::Begin("Detached Window");
-    ImGui::Text("Hello from Detached Window!");
-    ImGui::End();
-
-    ImGui::Render();
-    // Render ImGui for the main window
-    WindData->deviceContext->OMSetRenderTargets(1, &WindData->RenderTargetView, nullptr);
-    WindData->deviceContext->ClearRenderTargetView(WindData->RenderTargetView,
-                                                   (float*)&WindData->clear_color_with_alpha);
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    WindData->swapChain->Present(1, 0);  // Present with vsync
-    // WindData->swapChain->Present(0, 0);  // Present without vsync
-}
-
-void UpdateImGui() {
-    // Main loop
-    bool done = false;
-    ImGuiIO& io = ImGui::GetIO();
-    // Message loop
-    while (!done) {
-        MSG msg;
-        while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
-            ::TranslateMessage(&msg);
-            ::DispatchMessage(&msg);
-            if (msg.message == WM_QUIT) done = true;
+        if (gameData.Scene == Scene::Gameing) {
+            if (ImGui::Map == 0) {
+                ImGui::Map = ImGui::CreateTextureFromImage(
+                    // gameData.Map.MapName  "Savage_Main"
+                    std::string(CurrentDirectory + "\\photograph\\" + gameData.Map.MapName + ".png").c_str());
+            }
+            ImGui::ShowRadarWindow(&show_radar_window, ImVec2((float)g_main_form.width_, (float)g_main_form.height_));
         }
 
-        MainRenderImGui(&mainWndData);
-        // DetachedRenderImGui(&detachedWndData);
+        ImGui::Render();
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(g_main_form.windows_);
+
+        if (gameData.Scene == Scene::Gameing) {
+            if (!glfwGetWindowAttrib(g_detached_form.windows_, GLFW_VISIBLE)) {
+                glfwShowWindow(g_detached_form.windows_);
+                glfwFocusWindow(g_main_form.windows_);
+            }
+            g_detached_form.SwitchContext();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui::NewFrame();
+            ImGui::ShowSkeletonWindow(&show_skeleton_window, {(float)g_detached_form.width_, (float)g_detached_form.height_});
+            ImGui::Render();
+            glClear(GL_COLOR_BUFFER_BIT);
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            glfwSwapBuffers(g_detached_form.windows_);
+
+        } else {
+            if (glfwGetWindowAttrib(g_detached_form.windows_, GLFW_VISIBLE)) {
+                glfwHideWindow(g_detached_form.windows_);
+                glfwFocusWindow(g_main_form.windows_);
+            }
+        }
     }
+    g_main_form.Release();
+    g_detached_form.Release();
+    glfwTerminate();
+    return 0;
 }
 
-void ReleaseImGui() {
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-    mainWndData.Release();
-    // detachedWndData.Release();
-}
+// int UIPlay() {
+//     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+//     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+//     int borderAndTitleHeight = (GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYFIXEDFRAME)) * 3;
+//     std::cout << screenWidth << "    " << screenHeight << "    " << borderAndTitleHeight << std::endl;
+//     bool isShow = false;
+//     if (!glfwInit()) {
+//         LOGE("Failed to initialize GLFW\n");
+//         return -1;
+//     }
 
-void UIPlay() {
-    InitImGui();
-    UpdateImGui();
-    ReleaseImGui();
-}
+//     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+//     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+//     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+//     // Create the first window
+//     GLFWwindow* window1 = glfwCreateWindow(screenWidth, screenHeight, "Window 1", NULL, NULL);
+//     if (!window1) {
+//         LOGE("Failed to create GLFW window 1\n");
+//         glfwTerminate();
+//         return -1;
+//     }
+//     IMGUI_CHECKVERSION();
+//     ImGuiContext* ctx1 = ImGui::CreateContext();
+//     ImGui::SetCurrentContext(ctx1);
+//     glfwMakeContextCurrent(window1);
+//     ImGui_ImplGlfw_InitForOpenGL(window1, false);
+//     ImGui_ImplOpenGL3_Init();
+
+//     // Create the second window
+//     GLFWwindow* window2 = glfwCreateWindow(screenHeight - borderAndTitleHeight, screenHeight - borderAndTitleHeight, "Window 2", NULL, NULL);
+//     if (!window2) {
+//         LOGE("Failed to create GLFW window 2\n");
+//         glfwDestroyWindow(window1);
+//         glfwTerminate();
+//         return -1;
+//     }
+//     IMGUI_CHECKVERSION();
+//     ImGuiContext* ctx2 = ImGui::CreateContext();
+//     ImGui::SetCurrentContext(ctx2);
+//     glfwMakeContextCurrent(window2);
+//     ImGui_ImplGlfw_InitForOpenGL(window2, true);
+//     ImGui_ImplOpenGL3_Init();
+
+//     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+//         LOGE("Failed to initialize GLAD for window 2\n");
+//         glfwDestroyWindow(window1);
+//         glfwDestroyWindow(window2);
+//         glfwTerminate();
+//         return -1;
+//     }
+
+//     HWND hwnd1 = glfwGetWin32Window(window1);
+//     HWND hwnd2 = glfwGetWin32Window(window2);
+//     LONG style1 = GetWindowLong(hwnd1, GWL_EXSTYLE);
+//     LONG style2 = GetWindowLong(hwnd2, GWL_EXSTYLE);
+//     SetWindowPos(hwnd2, NULL, (screenWidth - screenHeight + borderAndTitleHeight) / 2, 2, 0, 0,
+//                  SWP_NOSIZE | SWP_NOZORDER);  // 居中显示
+
+//     bool done = false;
+//     bool show_skeleton_window = true;
+//     while (!done) {
+//         done = glfwWindowShouldClose(window1) || glfwWindowShouldClose(window2);
+//         if (done) break;
+//         glfwPollEvents();
+//         if (isShow) {
+//             if (!glfwGetWindowAttrib(window1, GLFW_VISIBLE)) {
+//                 glfwShowWindow(window1);
+//                 glfwFocusWindow(window2);  // 切换焦点到另一个窗口
+//             }
+//             ImGui::SetCurrentContext(ctx1);
+//             glfwMakeContextCurrent(window1);
+//             ImGui_ImplGlfw_NewFrame();
+//             ImGui_ImplOpenGL3_NewFrame();
+//             ImGui::NewFrame();
+//             ImGui::ShowSkeletonWindow(&show_skeleton_window, {(float)screenWidth, (float)screenHeight});
+//             ImGui::Render();
+//             glClear(GL_COLOR_BUFFER_BIT);
+//             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+//             glfwSwapBuffers(window1);
+//         } else {
+//             glfwMakeContextCurrent(NULL);
+//             if (glfwGetWindowAttrib(window1, GLFW_VISIBLE)) {
+//                 glfwHideWindow(window1);
+//             }
+//         }
+
+//         ImGui::SetCurrentContext(ctx2);
+//         glfwMakeContextCurrent(window2);
+//         ImGui_ImplGlfw_NewFrame();
+//         ImGui_ImplOpenGL3_NewFrame();
+//         ImGui::NewFrame();
+
+//         ImGui::Begin("BEGIN 2 !");
+//         ImGui::Text(u8"text2");
+//         if (ImGui::Button("full screen")) {
+//             // 获取当前监视器
+//             GLFWmonitor* currentMonitor = glfwGetWindowMonitor(window1);
+//             // 获取主监视器
+//             GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+//             // 判断当前窗口是否是全屏模式
+//             if (currentMonitor == NULL) {
+//                 isShow = true;
+//                 // 切换到全屏模式
+//                 glfwSetWindowMonitor(window1, primaryMonitor, 0, 0, screenWidth, screenHeight, GLFW_DONT_CARE);
+//             } else {
+//                 // 切换到非全屏模式
+//                 glfwSetWindowMonitor(window1, NULL, 0, 0, 640, 480, GLFW_DONT_CARE);
+//             }
+//         }
+//         if (ImGui::Button("Hide form")) {
+//             isShow = !isShow;
+//             const char* booln = isShow ? "true" : "false";
+//             std::cout << booln << std::endl;
+//         }
+//         ImGui::End();
+//         ImGui::Render();
+//         glClear(GL_COLOR_BUFFER_BIT);
+//         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+//         glfwSwapBuffers(window2);
+//     }
+
+//     // Cleanup for window1
+//     ImGui::SetCurrentContext(ctx1);
+//     glfwMakeContextCurrent(window1);
+//     ImGui_ImplOpenGL3_Shutdown();
+//     ImGui_ImplGlfw_Shutdown();
+//     ImGui::DestroyContext(ctx1);
+//     glfwDestroyWindow(window1);
+
+//     // Cleanup for window2
+//     ImGui::SetCurrentContext(ctx2);
+//     glfwMakeContextCurrent(window2);
+//     ImGui_ImplOpenGL3_Shutdown();
+//     ImGui_ImplGlfw_Shutdown();
+//     ImGui::DestroyContext(ctx2);
+//     glfwDestroyWindow(window2);
+
+//     glfwTerminate();
+
+//     return 0;
+// }

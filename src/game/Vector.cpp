@@ -63,101 +63,101 @@ D3DMATRIX Matrix(Vector3 rot, Vector3 origin = Vector3(0, 0, 0)) {
     return matrix;
 }
 
-// Vector3 VectorHelper::WorldToScreen(Vector3 WorldLocation) {
-//     Vector3 Screenlocation = Vector3(0, 0, 0);
+Vector3 VectorHelper::WorldToScreen(Vector3 WorldLocation) {
+    Vector3 Screenlocation = Vector3(0, 0, 0);
 
-//     Vector3 Rotation = gameData.Rotation;
+    Vector3 Rotation = gameData.Rotation;
 
-//     D3DMATRIX tempMatrix = Matrix(Rotation);
+    D3DMATRIX tempMatrix = Matrix(Rotation);
 
-//     Vector3 vAxisX, vAxisY, vAxisZ;
+    Vector3 vAxisX, vAxisY, vAxisZ;
 
-//     vAxisX = Vector3(tempMatrix.m[0][0], tempMatrix.m[0][1], tempMatrix.m[0][2]);
-//     vAxisY = Vector3(tempMatrix.m[1][0], tempMatrix.m[1][1], tempMatrix.m[1][2]);
-//     vAxisZ = Vector3(tempMatrix.m[2][0], tempMatrix.m[2][1], tempMatrix.m[2][2]);
+    vAxisX = Vector3(tempMatrix.m[0][0], tempMatrix.m[0][1], tempMatrix.m[0][2]);
+    vAxisY = Vector3(tempMatrix.m[1][0], tempMatrix.m[1][1], tempMatrix.m[1][2]);
+    vAxisZ = Vector3(tempMatrix.m[2][0], tempMatrix.m[2][1], tempMatrix.m[2][2]);
 
-//     Vector3 vDelta = WorldLocation - gameData.Location;
-//     Vector3 vTransformed = Vector3(vDelta * vAxisY, vDelta * vAxisZ, vDelta * vAxisX);
+    Vector3 vDelta = WorldLocation - gameData.Location;
+    Vector3 vTransformed = Vector3(vDelta * vAxisY, vDelta * vAxisZ, vDelta * vAxisX);
 
-//     if (vTransformed.z < 1.f) vTransformed.z = 1.f;
+    if (vTransformed.z < 1.f) vTransformed.z = 1.f;
 
-//     float FovAngle = gameData.FOV;
-//     float ScreenCenterX = gameData.ScreenWidth / 2.0f;
-//     float ScreenCenterY = gameData.ScreenHeight / 2.0f;
+    float FovAngle = gameData.FOV;
+    float ScreenCenterX = gameData.ScreenWidth / 2.0f;
+    float ScreenCenterY = gameData.ScreenHeight / 2.0f;
 
-//     Screenlocation.x =
-//         ScreenCenterX + vTransformed.x * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
-//     Screenlocation.y =
-//         ScreenCenterY - vTransformed.y * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
+    Screenlocation.x =
+        ScreenCenterX + vTransformed.x * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
+    Screenlocation.y =
+        ScreenCenterY - vTransformed.y * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
 
-//     return Screenlocation;
-// }
+    return Screenlocation;
+}
 
-// void VectorHelper::WorldToScreen(Vector3 WorldLocation, Vector3* pOut, float* DeltaInMeters) {
-//     Vector3 Screenlocation = Vector3(0, 0, 0);
+void VectorHelper::WorldToScreen(Vector3 WorldLocation, Vector3* pOut, float* DeltaInMeters) {
+    Vector3 Screenlocation = Vector3(0, 0, 0);
 
-//     Vector3 Rotation = gameData.Rotation;
+    Vector3 Rotation = gameData.Rotation;
 
-//     D3DMATRIX tempMatrix = Matrix(Rotation);
+    D3DMATRIX tempMatrix = Matrix(Rotation);
 
-//     Vector3 vAxisX, vAxisY, vAxisZ;
+    Vector3 vAxisX, vAxisY, vAxisZ;
 
-//     vAxisX = Vector3(tempMatrix.m[0][0], tempMatrix.m[0][1], tempMatrix.m[0][2]);
-//     vAxisY = Vector3(tempMatrix.m[1][0], tempMatrix.m[1][1], tempMatrix.m[1][2]);
-//     vAxisZ = Vector3(tempMatrix.m[2][0], tempMatrix.m[2][1], tempMatrix.m[2][2]);
+    vAxisX = Vector3(tempMatrix.m[0][0], tempMatrix.m[0][1], tempMatrix.m[0][2]);
+    vAxisY = Vector3(tempMatrix.m[1][0], tempMatrix.m[1][1], tempMatrix.m[1][2]);
+    vAxisZ = Vector3(tempMatrix.m[2][0], tempMatrix.m[2][1], tempMatrix.m[2][2]);
 
-//     Vector3 vDelta = WorldLocation - gameData.Location;
-//     Vector3 vTransformed = Vector3(vDelta * vAxisY, vDelta * vAxisZ, vDelta * vAxisX);
+    Vector3 vDelta = WorldLocation - gameData.Location;
+    Vector3 vTransformed = Vector3(vDelta * vAxisY, vDelta * vAxisZ, vDelta * vAxisX);
 
-//     if (vTransformed.z < 1.f) vTransformed.z = 1.f;
-//     if (DeltaInMeters != NULL) {
-//         *DeltaInMeters = vTransformed.z / 100;
-//     }
+    if (vTransformed.z < 1.f) vTransformed.z = 1.f;
+    if (DeltaInMeters != NULL) {
+        *DeltaInMeters = vTransformed.z / 100;
+    }
 
-//     float FovAngle = gameData.FOV;
-//     float ScreenCenterX = gameData.ScreenWidth / 2.0f;
-//     float ScreenCenterY = gameData.ScreenHeight / 2.0f;
+    float FovAngle = gameData.FOV;
+    float ScreenCenterX = gameData.ScreenWidth / 2.0f;
+    float ScreenCenterY = gameData.ScreenHeight / 2.0f;
 
-//     Screenlocation.x =
-//         ScreenCenterX + vTransformed.x * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
-//     Screenlocation.y =
-//         ScreenCenterY - vTransformed.y * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
+    Screenlocation.x =
+        ScreenCenterX + vTransformed.x * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
+    Screenlocation.y =
+        ScreenCenterY - vTransformed.y * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
 
-//     pOut->x = Screenlocation.x;
-//     pOut->y = Screenlocation.y;
-//     pOut->z = 0;
-// }
+    pOut->x = Screenlocation.x;
+    pOut->y = Screenlocation.y;
+    pOut->z = 0;
+}
 
-// Vector3 VectorHelper::WorldToScreenAim(Vector3 WorldLocation) {
-//     ULONG64 AnimScriptInstance = VmmCore::ReadValue<ULONG64>(gameData.LocalPlayerMesh + Offset::AnimScriptInstance);
-//     Vector3 Rotation = VmmCore::ReadValue<Vector3>(AnimScriptInstance + Offset::ControlRotation_CP) +
-//                        VmmCore::ReadValue<Vector3>(AnimScriptInstance + Offset::RecoilADSRotation_CP);
-//     Vector3 Screenlocation = Vector3(0, 0, 0);
-//     Utils::Log(2, " %f | %f | %f", Rotation.x, Rotation.y, Rotation.z);
-//     D3DMATRIX tempMatrix = Matrix(Rotation);
+Vector3 VectorHelper::WorldToScreenAim(Vector3 WorldLocation) {
+    ULONG64 AnimScriptInstance = VmmCore::ReadValue<ULONG64>(gameData.LocalPlayerMesh + Offset::AnimScriptInstance);
+    Vector3 Rotation = VmmCore::ReadValue<Vector3>(AnimScriptInstance + Offset::ControlRotation_CP) +
+                       VmmCore::ReadValue<Vector3>(AnimScriptInstance + Offset::RecoilADSRotation_CP);
+    Vector3 Screenlocation = Vector3(0, 0, 0);
+    Utils::Log(2, " %f | %f | %f", Rotation.x, Rotation.y, Rotation.z);
+    D3DMATRIX tempMatrix = Matrix(Rotation);
 
-//     Vector3 vAxisX, vAxisY, vAxisZ;
+    Vector3 vAxisX, vAxisY, vAxisZ;
 
-//     vAxisX = Vector3(tempMatrix.m[0][0], tempMatrix.m[0][1], tempMatrix.m[0][2]);
-//     vAxisY = Vector3(tempMatrix.m[1][0], tempMatrix.m[1][1], tempMatrix.m[1][2]);
-//     vAxisZ = Vector3(tempMatrix.m[2][0], tempMatrix.m[2][1], tempMatrix.m[2][2]);
+    vAxisX = Vector3(tempMatrix.m[0][0], tempMatrix.m[0][1], tempMatrix.m[0][2]);
+    vAxisY = Vector3(tempMatrix.m[1][0], tempMatrix.m[1][1], tempMatrix.m[1][2]);
+    vAxisZ = Vector3(tempMatrix.m[2][0], tempMatrix.m[2][1], tempMatrix.m[2][2]);
 
-//     Vector3 vDelta = WorldLocation - gameData.Location;
-//     Vector3 vTransformed = Vector3(vDelta * vAxisY, vDelta * vAxisZ, vDelta * vAxisX);
+    Vector3 vDelta = WorldLocation - gameData.Location;
+    Vector3 vTransformed = Vector3(vDelta * vAxisY, vDelta * vAxisZ, vDelta * vAxisX);
 
-//     if (vTransformed.z < 1.f) vTransformed.z = 1.f;
+    if (vTransformed.z < 1.f) vTransformed.z = 1.f;
 
-//     float FovAngle = gameData.FOV;
-//     float ScreenCenterX = gameData.ScreenWidth / 2.0f;
-//     float ScreenCenterY = gameData.ScreenHeight / 2.0f;
+    float FovAngle = gameData.FOV;
+    float ScreenCenterX = gameData.ScreenWidth / 2.0f;
+    float ScreenCenterY = gameData.ScreenHeight / 2.0f;
 
-//     Screenlocation.x =
-//         ScreenCenterX + vTransformed.x * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
-//     Screenlocation.y =
-//         ScreenCenterY - vTransformed.y * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
+    Screenlocation.x =
+        ScreenCenterX + vTransformed.x * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
+    Screenlocation.y =
+        ScreenCenterY - vTransformed.y * (ScreenCenterX / tanf(FovAngle * (float)M_PI / 360.f)) / vTransformed.z;
 
-//     return Screenlocation;
-// }
+    return Screenlocation;
+}
 
 D3DMATRIX ToMatrixWithScale(FQuat Rotation, FVector Translation, FVector Scale3D) {
     D3DMATRIX m;
