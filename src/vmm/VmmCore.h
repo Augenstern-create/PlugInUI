@@ -4,6 +4,7 @@
 #include "SrcGame.h"
 #include "SrcUe4Math.h"
 #include "vmmdll.h"
+#include <chrono>
 
 class VmmCore {
    public:
@@ -11,8 +12,7 @@ class VmmCore {
     static BOOL ReadScatterBytes(std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<T>& Array);
 
     template <typename T>
-    static BOOL ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector,
-                                 _Out_ std::vector<T>& Array, DWORD_PTR length = 0);
+    static BOOL ReadScatterBytes(VMMDLL_SCATTER_HANDLE Handle, std::vector<DWORD_PTR>& AddrVector, _Out_ std::vector<T>& Array, DWORD_PTR length = 0);
 
     template <typename T>
     static T ReadScatterValues(std::vector<DWORD_PTR>& addrVector) {
@@ -79,9 +79,6 @@ class VmmCore {
     static BOOL ScatterReadEx(int hsIndex, uintptr_t address, T* buffer) {
         return VMMDLL_Scatter_PrepareEx(GetScatterHandle(hsIndex), address, sizeof(T), (PBYTE)buffer, NULL);
     }
-    // static BOOL ScatterReadEx(int hsIndex, uintptr_t address, int* buffer) {
-    //     return VMMDLL_Scatter_PrepareEx(GetScatterHandle(hsIndex), address, sizeof(int), (PBYTE)buffer, NULL);
-    // }
 
     template <typename T>
     static void ScatterRead(VMMDLL_SCATTER_HANDLE Handle, DWORD_PTR Vector, T* temp) {
@@ -89,9 +86,9 @@ class VmmCore {
     }
 
     static BOOL ScatterExecuteReadEx(int hsIndex) {
-        // BOOL result = FALSE;
+        BOOL result = FALSE;
         VMMDLL_SCATTER_HANDLE hs = GetScatterHandle(hsIndex);
-        BOOL result = VMMDLL_Scatter_ExecuteRead(hs);
+        result = VMMDLL_Scatter_ExecuteRead(hs);
         ScatterClear(hs);
         return result;
     }

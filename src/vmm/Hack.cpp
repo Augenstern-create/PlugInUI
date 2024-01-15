@@ -188,8 +188,16 @@ void AimBot() {
     }
 }
 
-bool IsLobby(const std::string& mapName) {
-    return (mapName.find("fail") != std::string::npos || mapName.find("None") != std::string::npos || mapName.find("TslLobby") != std::string::npos);
+// bool IsLobby(const std::string& mapName) {
+//     return (mapName.find("fail") != std::string::npos || mapName.find("None") != std::string::npos || mapName.find("TslLobby") != std::string::npos);
+// }
+
+bool JudgeOneself() {
+    int is = VmmCore::ReadValue<int>(VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::VehicleRiderComponent) + Offset::SeatIndex);
+    if (is == -1 || is == 1 || is == 2 || is == 3 || is == 4 || is == 5) {
+        return true;
+    }
+    return false;
 }
 
 void UpdateAddress() {
@@ -205,27 +213,30 @@ void UpdateAddress() {
             gameData.AcknowledgedPawn = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::AcknowledgedPawn));
             gameData.PlayerCameraManager = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::PlayerCameraManager);
             gameData.MyHUD = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerCameraManager + Offset::ViewTarget);
-            gameData.Actor = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.CurrentLevel + Offset::Actor));
-            gameData.Map.MapPageIndex = Decrypt::CIndex(VmmCore::ReadValue<int>(gameData.UWorld + Offset::ObjID));
-            gameData.Map.MapName = GNames::GetNameByID(gameData.Map.MapPageIndex);
-            if (IsLobby(gameData.Map.MapName)) {
-                // if (gameData.Scene != Scene::Lobby)
-                Data::Clears();
-                gameData.Scene = Scene::Lobby;
-
-            } else {
-                if (VmmCore::GetScatterHandleSize() > 0) {
-                    // if (gameData.Scene != Scene::Gameing)
-                    GNames::GetGNameLists();
-                    gameData.Scene = Scene::Gameing;
+            UpdateGameScene();
+            if (gameData.Scene == Scene::Gameing) {
+                gameData.PlayerCount = VmmCore::ReadValue<int>(gameData.GameState + Offset::PlayerArray + 0x8);
+                if (JudgeOneself()) {
+                    DWORD_PTR NamePtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Playname);
+                    if (!Utils::ValidPtr(NamePtr)) {
+                        FText NameText = VmmCore::ReadValue<FText>(NamePtr);
+                        std::string Name = Utils::UnicodeToAnsi(NameText.buffer);
+                        gameData.Myself.ClanName = Utils::AnalyzeClanName(Name);
+                        gameData.Myself.Name = Utils::AnalyzeName(Name);
+                        gameData.Myself.Mesh = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Mesh);
+                        gameData.Myself.AnimScript = VmmCore::ReadValue<DWORD_PTR>(gameData.Myself.Mesh + Offset::AnimScriptInstance);
+                        gameData.Myself.TeamID = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::LastTeamNum);
+                        gameData.Myself.TeamID = gameData.Myself.TeamID >= 100000 ? gameData.Myself.TeamID - 100000 : gameData.Myself.TeamID;
+                    }
                 }
+                gameData.Map.WorldOriginLocation = Vector3(VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap),
+                                                           VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap + 0x4), 0.0f);
             }
-        } else {
-            gameData.Scene = Scene::FindProcess;
+            gameData.Actor = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.CurrentLevel + Offset::Actor));
         }
     }
 }
-std::vector<ActorEntityInfo> gEntitys;
+
 void UpdateEntitys() {
     while (true) {
         if (gameData.Scene != Scene::Gameing) continue;
@@ -241,11 +252,26 @@ void UpdateEntitys() {
 
         std::vector<DWORD_PTR> entitys(ActorCount);
         auto CacheEntity = Data::GetCacheEntity();
+
         for (int i = 0; i < ActorCount; i++) {
             DWORD_PTR Actors = (Actor + (i * 0x8));
             VmmCore::ScatterReadEx(0, Actors, (DWORD_PTR*)&entitys[i]);
         }
-        VmmCore::ScatterExecuteReadEx(0);
+        auto start_time = std::chrono::high_resolution_clock::now();
+        auto result = VmmCore::ScatterExecuteReadEx(0);
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+        if (duration.count() > 50) {
+            std::cout << "Time taken: " << duration.count() << " milliseconds." << std::endl;
+            if (result == FALSE) {
+                std::cout << "FALSE" << std::endl;
+            } else {
+                std::cout << "TRUE" << std::endl;
+            }
+        }
+
+        entitys = GetEntitys((Actor));
         for (auto entity : entitys) {
             if (entity == 0) continue;
             if ((std::find_if(CacheEntity.begin(), CacheEntity.end(), [entity](const ActorEntityInfo& info) { return info.Entity == entity; })) ==
@@ -266,7 +292,7 @@ void UpdateEntitys() {
                 entity.decodeID = decodeID;
             }
         }
-
+        // std::vector<ActorEntityInfo> gEntitys;
         // for (auto entity : entitys) {
         //     if (entity == 0) continue;
 
@@ -529,14 +555,6 @@ void UpdateSkeleton() {
     }
 }
 
-bool JudgeOneself() {
-    int is = VmmCore::ReadValue<int>(VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::VehicleRiderComponent) + Offset::SeatIndex);
-    if (is == -1 || is == 1 || is == 2 || is == 3 || is == 4 || is == 5) {
-        return true;
-    }
-    return false;
-}
-
 void HackStart() {
     std::thread thread1(ListenGameProcessState);
     thread1.join();
@@ -555,28 +573,8 @@ void HackStart() {
 
     while (true) {
         if (gameData.Scene == Scene::Gameing) {
-            // gameData.PlayerCount = VmmCore::ReadValue<int>(gameData.GameState + Offset::PlayerArray + 0x8);
-            // if (JudgeOneself()) {
-            //     DWORD_PTR NamePtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Playname);
-            //     if (!Utils::ValidPtr(NamePtr)) {
-            //         FText NameText = VmmCore::ReadValue<FText>(NamePtr);
-            //         std::string Name = Utils::UnicodeToAnsi(NameText.buffer);
-            //         gameData.Myself.ClanName = Utils::AnalyzeClanName(Name);
-            //         gameData.Myself.Name = Utils::AnalyzeName(Name);
-            //         gameData.Myself.Mesh = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Mesh);
-            //         gameData.Myself.AnimScript = VmmCore::ReadValue<DWORD_PTR>(gameData.Myself.Mesh + Offset::AnimScriptInstance);
-            //         gameData.Myself.TeamID = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::LastTeamNum);
-            //         gameData.Myself.TeamID = gameData.Myself.TeamID >= 100000 ? gameData.Myself.TeamID - 100000 : gameData.Myself.TeamID;
-            //     }
-            // }
-            // gameData.Map.WorldOriginLocation = Vector3(VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap),
-            //                                            VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap + 0x4), 0.0f);
         } else {
             Sleep(100);
-            // Data::Clears();
-            // if (gEntitys.size() != 0) {
-            //     gEntitys.clear();
-            // }
         }
     }
 }

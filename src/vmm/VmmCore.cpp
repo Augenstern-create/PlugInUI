@@ -13,7 +13,7 @@ struct DProcess {
 };
 
 BOOL VmmCore::Initialize() {
-    LPSTR args[] = {(LPSTR) "-norefresh", (LPSTR) "-device", (LPSTR) "fpga", (LPSTR) "-printf", (LPSTR) "-v"};
+    LPSTR args[] = {(LPSTR) "-norefresh", (LPSTR) "-device", (LPSTR) "fpga"};
     DWORD argc = sizeof(args) / sizeof(args[0]);
     hVMM = VMMDLL_Initialize(argc, args);
     if (hVMM == 0) {
@@ -91,14 +91,13 @@ BOOL VmmCore::InitScatterHandles() {
         VMMDLL_Scatter_Clear(hs, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO);
         VMMDLL_Scatter_CloseHandle(hs);
     }
-
     scatterhandles = {};
-
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
-
+    scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
+    scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     return scatterhandles.size() > 0;
 }
 

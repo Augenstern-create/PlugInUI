@@ -29,7 +29,7 @@ int Refresh() {
         } else if (gameData.Scene == Scene::Gameing) {
             VmmCore::Refresh();
         }
-        Sleep(500);
+        Sleep(300);
     }
 }
 void init() { ComponentsLists::LoadSet(); }
@@ -42,12 +42,12 @@ int main(int, char**) {
         Utils::Log(2, "Initialization failure.");
         return -1;
     } else {
+        std::thread refreshThread(Refresh);
+        refreshThread.detach();
         std::thread hackThread(HackStart);
         // hackThread.join();
         hackThread.detach();
-        std::thread refreshThread(Refresh);
-        refreshThread.detach();
-    }
+        }
     std::cout << "Initializing Imgui" << std::endl;
 
     UIPlay();
