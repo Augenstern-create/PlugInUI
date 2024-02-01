@@ -21,7 +21,7 @@ void UpdateGameScene() {
     if (gameData.PID == 0) {
         gameData.Scene = Scene::FindProcess;
     } else {
-        gameData.Map.MapPageIndex = Decrypt::CIndex(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + Offset::ObjID));
+        gameData.Map.MapPageIndex = Decrypt::CIndex(VmmCore::ReadValue<int>(gameData.UWorld + Offset::ObjID));
         gameData.Map.MapName = GNames::GetNameByID(gameData.Map.MapPageIndex);
         if (IsLobby(gameData.Map.MapName)) {
             gameData.Scene = Scene::Lobby;
@@ -37,9 +37,6 @@ void UpdateGameScene() {
         PreviousScene = gameData.Scene;
         if (gameData.Scene == Scene::Gameing) {
             GNames::GetGNameLists();
-            // CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)UpdateEntitys, NULL, NULL, NULL);
-            // CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)UpdatePlayers, NULL, NULL, NULL);
-            // CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)Radar::Update, NULL, NULL, NULL);
         }
     }
 }

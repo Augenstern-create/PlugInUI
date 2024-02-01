@@ -32,7 +32,10 @@ int Refresh() {
         Sleep(300);
     }
 }
-void init() { ComponentsLists::LoadSet(); }
+void init() {
+    ComponentsLists::LoadSet();
+    // gameData.Radar.ZoomFactor = 1.0f;
+}
 
 int main(int, char**) {
     std::cout << "Version : " << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << std::endl;
@@ -47,7 +50,7 @@ int main(int, char**) {
         std::thread hackThread(HackStart);
         // hackThread.join();
         hackThread.detach();
-        }
+    }
     std::cout << "Initializing Imgui" << std::endl;
 
     UIPlay();

@@ -170,9 +170,10 @@ int UIPlay() {
         }
         if (gameData.Scene == Scene::Gameing) {
             if (ImGui::Map == 0) {
-                ImGui::Map = ImGui::CreateTextureFromImage(
-                    // gameData.Map.MapName  "Savage_Main"
-                    std::string(CurrentDirectory + "\\photograph\\" + gameData.Map.MapName + ".png").c_str());
+                // gameData.Map.MapName  "Savage_Main"
+                std::string Path = CurrentDirectory + "\\photograph\\" + gameData.Map.MapName + ".png";
+                // std::string Path = "C:\\Users\\25026\\Pictures\\GenshinImpactCloudGame\\1-1.png";
+                ImGui::Map = ImGui::CreateTextureFromImage(Path.c_str());
             }
             ImGui::ShowRadarWindow(&show_radar_window, ImVec2((float)g_main_form.width_, (float)g_main_form.height_));
         }
