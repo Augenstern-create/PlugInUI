@@ -15,6 +15,8 @@ struct EntityInfo {
 EntityInfo findEntityInfoByID(int id);
 std::string findNameByID(int id);
 
+EntityInfo findEntityInfoByName(std::string name);
+
 extern std::unordered_map<std::string, EntityInfo> EntityLists;
 
 namespace Weapon {

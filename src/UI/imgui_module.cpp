@@ -19,10 +19,55 @@
 #include "GLFW/glfw3native.h"
 #include "game/Bone.h"
 #include "game/Data.h"
+#include "imgui.h"
 
 namespace ImGui {
 static ImU32 subform_color_ = IM_COL32(41, 43, 56, 128);
+
+ImU32 InverseColor(ImU32 color) {
+    return IM_COL32(255 - ((color >> IM_COL32_R_SHIFT) & 0xFF), 255 - ((color >> IM_COL32_G_SHIFT) & 0xFF), 255 - ((color >> IM_COL32_B_SHIFT) & 0xFF), 255);
+}
+
+TextureID LoadingTexturesUsingImage(const char* path) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrChannels;
+    uint8_t* data = (uint8_t*)stbi_load(path, &width, &height, &nrChannels, 0);
+    if (data == NULL) {
+        return {nullptr, {0.0f, 0.0f}};
+    }
+
+    GLenum format;
+    if (nrChannels == 1)
+        format = GL_RED;
+    else if (nrChannels == 3)
+        format = GL_RGB;
+    else if (nrChannels == 4)
+        format = GL_RGBA;
+
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    TextureID t;
+    t.texture = reinterpret_cast<ImTextureID>(static_cast<intptr_t>(textureID));
+    t.size = {(float)width, (float)height};
+    t.channels = nrChannels;
+    stbi_image_free(data);
+
+    return t;
+}
 }  // namespace ImGui
+
+// 带有圆角矩形的子窗体
+void ImGui::RoundedRectangleSubform(const char* text, ImVec2 size, ImVec2 pos, float rounding, ImU32 Color) {
+    ImGui::SetNextWindowPos(pos);
+    ImGui::BeginChild(text, size, ImGuiWindowFlags_None);
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 p0 = pos;
+    ImVec2 p1 = ImVec2(pos.x + size.x, pos.y + size.y);
+    drawList->AddRectFilled(p0, p1, Color, rounding);
+}
 
 void ImGui::RenderCustomSizedText(ImVec2 pos, const char* text, float FontSize, ImU32 Color, const char* text_end, bool hide_text_after_hash) {
     ImGuiContext& g = *GImGui;
@@ -71,8 +116,6 @@ ImTextureID ImGui::CreateTextureFromImage(const char* imageFilePath, ID3D11Devic
             // 创建Shader Resource View
             ID3D11ShaderResourceView* texture_srv = nullptr;
             device->CreateShaderResourceView(texture, nullptr, &texture_srv);
-
-            // 释放ID3D11Texture2D对象，因为我们已经创建了Shader Resource View
             texture->Release();
 
             if (texture_srv != nullptr) {
@@ -80,18 +123,12 @@ ImTextureID ImGui::CreateTextureFromImage(const char* imageFilePath, ID3D11Devic
                 return reinterpret_cast<ImTextureID>(texture_srv);
 
             } else {
-                // Log an error or handle the failure appropriately
-                // For example, you can print a message to the console
                 printf("Failed to create Shader Resource View.\n");
             }
         } else {
-            // Log an error or handle the failure appropriately
-            // For example, you can print a message to the console
             printf("Failed to create Direct3D 11 texture.\n");
         }
     } else {
-        // Log an error or handle the failure appropriately
-        // For example, you can print a message to the console
         printf("Failed to load image from file.\n");
     }
 
@@ -295,7 +332,6 @@ bool ImGui::RenderCustomButton(const char* str_id, ImTextureID user_texture_id, 
 
 void ImGui::RenderRoundedRect(ImDrawList* drawList, ImVec2 pMin, ImVec2 pMax, float rounding, ImU32 borderColor, float borderSize) {
     drawList->AddRectFilled(pMin, pMax, subform_color_, rounding);
-
     if (borderSize > 0) drawList->AddRect(pMin, pMax, borderColor, ImDrawFlags_RoundCornersAll, borderSize);
 }
 
@@ -343,12 +379,23 @@ void ImGui::DrawPlayerName(const char* txt, ImVec2 pos, float size, ImU32 color)
 // 绘制距离
 void ImGui::DrawPlayerDistance(const char* txt, ImVec2 pos, float size, ImU32 color) { ImGui::RenderCustomSizedText(pos, txt, size, color); }
 
+// // 绘制队伍id
+// void ImGui::DrawPlayerTeamID(const char* txt, ImVec2 pos, ImVec2 pos2, float size, ImU32 color) {
+//     ImGuiWindow* window = ImGui::GetCurrentWindow();
+//     if (window->SkipItems) return;
+//     window->DrawList->AddCircleFilled(pos2, size * 0.75, color);
+//     ImGui::RenderCustomSizedText(pos, txt, size, IM_COL32(255, 255, 255, 255));
+// }
 // 绘制队伍id
-void ImGui::DrawPlayerTeamID(const char* txt, ImVec2 pos, ImVec2 pos2, float size, ImU32 color) {
+void ImGui::DrawPlayerTeamID(const char* txt, ImVec2 pos, float size, float zoom, ImU32 color) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems) return;
-    window->DrawList->AddCircleFilled(pos2, size, color);
-    ImGui::RenderCustomSizedText(pos, txt, size, color);
+    ImVec2 txtSize = ImGui::CalcTextSize(txt);
+    txtSize = txtSize * zoom;
+    ImU32 contexts_color = InverseColor(color);
+    ImVec2 pos2 = pos + txtSize * 0.25f;
+    window->DrawList->AddCircleFilled(pos2, size * 0.5f, color);
+    ImGui::RenderCustomSizedText(pos, txt, size, contexts_color);
 }
 
 // 绘制血量
@@ -357,11 +404,13 @@ void ImGui::DrawPlayerHitPoint(int HP, ImVec2 pos, float size, ImU32 color, ImU3
     if (window->SkipItems) return;
     HP = HP > 100.0f ? 100.0f : HP;
     HP = HP < 0.0f ? 0.0f : HP;
-    ImVec2 HPPos1 = {pos.x - 50.0f, pos.y - 20.0f};
-    ImVec2 HPPos2 = {pos.x + 50.0f, pos.y - 10.0f};
-    ImVec2 HPPos3 = {HPPos1.x + (HP), pos.y - 10.0f};
+    float posx = 50.0f * size;
+    float posy = (8.0f - 8.0f * size) + 8.0f;
+    ImVec2 HPPos1 = {pos.x - posx, pos.y - 20.0f};
+    ImVec2 HPPos2 = {pos.x + posx, pos.y - posy};
+    ImVec2 HPPos3 = {HPPos1.x + (HP * size), pos.y - posy};
     window->DrawList->AddRectFilled(HPPos1, HPPos2, color2);
-    if (HP != 100.0f) window->DrawList->AddRectFilled(HPPos1, HPPos3, color);
+    window->DrawList->AddRectFilled(HPPos1, HPPos3, color);
 }
 
 // 绘制武器

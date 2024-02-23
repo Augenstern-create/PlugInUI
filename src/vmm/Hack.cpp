@@ -11,6 +11,8 @@
 #include "VmmCore.h"
 #include "vmmdll.h"
 #include <unordered_set>
+#include <cfloat>
+#include <cmath>
 
 // #include "gui/OverlayWindow.h"
 
@@ -29,6 +31,11 @@
         if (duration.count() >= 10)                                                                                                        \
             std::cout << "File: " << file << ", Line: " << line << " - Time taken: " << duration.count() << " milliseconds." << std::endl; \
     } while (false)
+
+template <typename T>
+T Clamping(T value, T min, T max) {
+    return value <= min ? min : (value >= max ? max : value);
+}
 
 FVector GetVihecleSpeed(ULONG64 ACharacter) {
     ULONG64 VehicleRiderComponent = VmmCore::ReadValue<DWORD_PTR>(ACharacter + Offset::VehicleRiderComponent);
@@ -99,91 +106,83 @@ void AimBot() {
                 }
             }
 
-            DWORD_PTR WeaponData = VmmCore::ReadValue<DWORD_PTR>(localPlayer.CurrentWeapon + Offset::WeaponTrajectoryData);
-            FWeaponTrajectoryConfig TrajectoryConfig = VmmCore::ReadValue<FWeaponTrajectoryConfig>(WeaponData + Offset::TrajectoryConfig);
-            FRichCurve RichCurve = VmmCore::ReadValue<FRichCurve>(TrajectoryConfig.BallisticCurve + Offset::FloatCurves + Offset::Keys);
+            //     DWORD_PTR WeaponData = VmmCore::ReadValue<DWORD_PTR>(localPlayer.CurrentWeapon + Offset::WeaponTrajectoryData);
+            //     FWeaponTrajectoryConfig TrajectoryConfig = VmmCore::ReadValue<FWeaponTrajectoryConfig>(WeaponData + Offset::TrajectoryConfig);
+            //     FRichCurve RichCurve = VmmCore::ReadValue<FRichCurve>(TrajectoryConfig.BallisticCurve + Offset::FloatCurves + Offset::Keys);
 
-            std::vector<FRichCurveKey> Keys;
-            DWORD_PTR KeysArray = VmmCore::ReadValue<DWORD_PTR>(WeaponData + Offset::BallisticCurve + Offset::FloatCurves + Offset::Keys);
-            auto KeysArrayCount = VmmCore::ReadValue<ULONG32>(TrajectoryConfig.BallisticCurve + Offset::FloatCurves + Offset::Keys + 8);
+            //     std::vector<FRichCurveKey> Keys;
+            //     DWORD_PTR KeysArray = VmmCore::ReadValue<DWORD_PTR>(WeaponData + Offset::BallisticCurve + Offset::FloatCurves + Offset::Keys);
+            //     auto KeysArrayCount = VmmCore::ReadValue<ULONG32>(TrajectoryConfig.BallisticCurve + Offset::FloatCurves + Offset::Keys + 8);
 
-            Utils::Log(2, "TrajectoryConfig.BallisticCurve: 0x%11x", TrajectoryConfig.BallisticCurve);
+            //     Utils::Log(2, "TrajectoryConfig.BallisticCurve: 0x%11x", TrajectoryConfig.BallisticCurve);
 
-            /*for (auto i = 0; i < KeysArrayCount; i++)
-            {
-                    FRichCurveKey RichCurveKey = Read<FRichCurveKey>(KeysArray + (0x1C * i));
-                    Keys.push_back(RichCurveKey);
-            }*/
-            // Reading keys (I don't know why but I can't read TArray from UE4)
-            /*float TimeScale = 0.0f;
-            Vector3 TargetActorS = VmmCore::ReadValue<Vector3>(targetPlayer.Entity + Offset::Veloctity);
-            float flyTime = targetPlayer.Distance / TrajectoryConfig.InitialSpeed;
-            Vector3 PredictedPos = targetPlayer.Skeleton.LocationBones[EBoneIndex::forehead] + TargetActorS * flyTime;
-            flyTime /= 0,1;
-            if (TrajectoryConfig.InitialSpeed > 0) {
-                    PredictedPos.z = PredictedPos.z + (GetBulletDrop(flyTime / 10.0, TrajectoryConfig) -
-            (targetPlayer.Distance >= 320.0f ? 0 : 15.6f) + (TargetActorS.z * flyTime * 0.0360f));
+            //     for (auto i = 0; i < KeysArrayCount; i++) {
+            //         FRichCurveKey RichCurveKey = Read<FRichCurveKey>(KeysArray + (0x1C * i));
+            //         Keys.push_back(RichCurveKey);
+            //     }
+            //     // Reading keys (I don't know why but I can't read TArray from UE4)
+            //     float TimeScale = 0.0f;
+            //     Vector3 TargetActorS = VmmCore::ReadValue<Vector3>(targetPlayer.Entity + Offset::Veloctity);
+            //     float flyTime = targetPlayer.Distance / TrajectoryConfig.InitialSpeed;
+            //     Vector3 PredictedPos = targetPlayer.Skeleton.LocationBones[EBoneIndex::forehead] + TargetActorS * flyTime;
+            //     flyTime /= 0, 1;
+            //     if (TrajectoryConfig.InitialSpeed > 0) {
+            //         PredictedPos.z = PredictedPos.z + (GetBulletDrop(flyTime / 10.0, TrajectoryConfig) - (targetPlayer.Distance >= 320.0f ? 0 : 15.6f) +
+            //                                            (TargetActorS.z * flyTime * 0.0360f));
 
-                    Utils::Log(2, "Distance: %f, TrajectoryConfig: %f", targetPlayer.Distance, PredictedPos.z);
-            }*/
-            // Utils::Log(2, "TrajectoryConfig.BallisticCurve: 0x%11x", TrajectoryConfig.BallisticCurve);
-            // Utils::Log(2, "RichCurve: %f", RichCurve.DefaultValue);
-            // Utils::Log(2, "RichCurve: %d", KeysArrayCount);
+            //         Utils::Log(2, "Distance: %f, TrajectoryConfig: %f", targetPlayer.Distance, PredictedPos.z);
+            //     }
+            //     Utils::Log(2, "TrajectoryConfig.BallisticCurve: 0x%11x", TrajectoryConfig.BallisticCurve);
+            //     Utils::Log(2, "RichCurve: %f", RichCurve.DefaultValue);
+            //     Utils::Log(2, "RichCurve: %d", KeysArrayCount);
 
-            // auto WeaponProcessor = VmmCore::ReadValue<DWORD_PTR>(gameData.LocalPlayerPawn + Offset::WeaponProcessor);
+            //     auto WeaponProcessor = VmmCore::ReadValue<DWORD_PTR>(gameData.LocalPlayerPawn + Offset::WeaponProcessor);
 
-            // auto EquippedWeapons = VmmCore::ReadValue<DWORD_PTR>(WeaponProcessor + Offset::EquippedWeapons);
+            //     auto EquippedWeapons = VmmCore::ReadValue<DWORD_PTR>(WeaponProcessor + Offset::EquippedWeapons);
 
-            // auto CurrentWeaponIndex = VmmCore::ReadValue<BYTE>(WeaponProcessor + Offset::CurrentWeaponIndex);
-            // if (CurrentWeaponIndex >= 0 && CurrentWeaponIndex < 8)
-            //{
-            //	auto pWeap = VmmCore::ReadValue<DWORD_PTR>(EquippedWeapons + CurrentWeaponIndex * 8);
-            //	if (pWeap > 0)
-            //	{
-            //		ULONG CurrentWeaponID = Decrypt::CIndex(VmmCore::ReadValue<DWORD_PTR>(pWeap + Offset::ObjID));
-            //		DWORD_PTR WeaponData = VmmCore::ReadValue<DWORD_PTR>(pWeap + Offset::WeaponTrajectoryData);
-            //		FWeaponTrajectoryConfig TrajectoryConfig =
-            // VmmCore::ReadValue<FWeaponTrajectoryConfig>(WeaponData + Offset::TrajectoryConfig); 		float
-            // Gravity = VmmCore::ReadValue<float>(WeaponData + Offset::TrajectoryConfig + 0x18);
+            //     auto CurrentWeaponIndex = VmmCore::ReadValue<BYTE>(WeaponProcessor + Offset::CurrentWeaponIndex);
+            //     if (CurrentWeaponIndex >= 0 && CurrentWeaponIndex < 8) {
+            //         auto pWeap = VmmCore::ReadValue<DWORD_PTR>(EquippedWeapons + CurrentWeaponIndex * 8);
+            //         if (pWeap > 0) {
+            //             ULONG CurrentWeaponID = Decrypt::CIndex(VmmCore::ReadValue<DWORD_PTR>(pWeap + Offset::ObjID));
+            //             DWORD_PTR WeaponData = VmmCore::ReadValue<DWORD_PTR>(pWeap + Offset::WeaponTrajectoryData);
+            //             FWeaponTrajectoryConfig TrajectoryConfig = VmmCore::ReadValue<FWeaponTrajectoryConfig>(WeaponData + Offset::TrajectoryConfig);
+            //             float Gravity = VmmCore::ReadValue<float>(WeaponData + Offset::TrajectoryConfig + 0x18);
 
-            //		FVector velocity{};
-            //		velocity = GetVihecleSpeed(player.Entity);
-            //		if (velocity.X == 0.f && velocity.Y == 0.f && velocity.Z == 0.f) {
-            //			velocity = VmmCore::ReadValue<FVector>(player.RootComponent +
-            // Offset::ComponentVelocity);
-            //		}
+            //             FVector velocity{};
+            //             velocity = GetVihecleSpeed(player.Entity);
+            //             if (velocity.X == 0.f && velocity.Y == 0.f && velocity.Z == 0.f) {
+            //                 velocity = VmmCore::ReadValue<FVector>(player.RootComponent + Offset::ComponentVelocity);
+            //             }
 
-            //		FVector WeaponTrajectory{};
-            //		WeaponTrajectory.X = TrajectoryConfig.InitialSpeed;
+            //             FVector WeaponTrajectory{};
+            //             WeaponTrajectory.X = TrajectoryConfig.InitialSpeed;
 
-            //		WeaponTrajectory.Y = TrajectoryConfig.WeaponSpread;
+            //             WeaponTrajectory.Y = TrajectoryConfig.WeaponSpread;
 
-            //		WeaponTrajectory.Y = Gravity;
+            //             WeaponTrajectory.Y = Gravity;
 
-            //		auto pos = player.Skeleton.LocationBones[EBoneIndex::forehead];
-            //		Vector3 screenPos;
-            //		float dist;
-            //		WorldToScreen(pos, &screenPos, &dist);
-            //		FVector ObjePos = GetPredictPlayerLocation(FVector(pos.x, pos.y, pos.z), velocity, 1,
-            // WeaponTrajectory); 		Vector3 aimPOS = WorldToScreenAim(Vector3(ObjePos.X, ObjePos.Y,
-            // ObjePos.Z)); 		Utils::Log(2, "AimBot Target: %s | %f | %f | %f | %f", player.Name, dist,
-            // aimPOS.x,
-            // aimPOS.y, screenPos.z);
-            //		//KmBox::Move(aimPOS.x, aimPOS.y);
-            //		//Utils::Log(2, "AimBot Target: %s | %d | %f | %f", player.Name, CurrentWeaponID,
-            // TrajectoryConfig.InitialSpeed, Gravity);
-            //	}
-            //}
-        } else {
-            gameData.AimBot.Lock = false;
-        }
+            //             auto pos = player.Skeleton.LocationBones[EBoneIndex::forehead];
+            //             Vector3 screenPos;
+            //             float dist;
+            //             WorldToScreen(pos, &screenPos, &dist);
+            //             FVector ObjePos = GetPredictPlayerLocation(FVector(pos.x, pos.y, pos.z), velocity, 1, WeaponTrajectory);
+            //             Vector3 aimPOS = WorldToScreenAim(Vector3(ObjePos.X, ObjePos.Y, ObjePos.Z));
+            //             Utils::Log(2, "AimBot Target: %s | %f | %f | %f | %f", player.Name, dist, aimPOS.x, aimPOS.y, screenPos.z);
+            //             KmBox::Move(aimPOS.x, aimPOS.y);
+            //             Utils::Log(2, "AimBot Target: %s | %d | %f | %f", player.Name, CurrentWeaponID, TrajectoryConfig.InitialSpeed, Gravity);
+            //         }
+            //     }
+            // } else {
+            //     gameData.AimBot.Lock = false;
+            // }
 
-        auto endTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> frameTime = endTime - startTime;
+            // auto endTime = std::chrono::high_resolution_clock::now();
+            // std::chrono::duration<double> frameTime = endTime - startTime;
 
-        double delayTime = targetFrameTime - frameTime.count();
-        if (delayTime > 0.0) {
-            std::this_thread::sleep_for(std::chrono::duration<double>(delayTime));
+            // double delayTime = targetFrameTime - frameTime.count();
+            // if (delayTime > 0.0) {
+            //     std::this_thread::sleep_for(std::chrono::duration<double>(delayTime));
         }
     }
 }
@@ -193,7 +192,7 @@ void AimBot() {
 // }
 
 bool JudgeOneself() {
-    int is = VmmCore::ReadValue<int>(VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::VehicleRiderComponent) + Offset::SeatIndex);
+    int is = VmmCore::ReadValue<int>(VmmCore::ReadValue<DWORD_PTR>(gameData.ViewTarget + Offset::VehicleRiderComponent) + Offset::SeatIndex);
     if (is == -1 || is == 1 || is == 2 || is == 3 || is == 4 || is == 5) {
         return true;
     }
@@ -203,7 +202,8 @@ bool JudgeOneself() {
 void UpdateAddress() {
     while (true) {
         if (gameData.PID > 0) {
-            gameData.GNames = GNames::GetGNamesPtr();
+            DWORD_PTR GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::GNames));
+            gameData.GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(GNames));
             gameData.UWorld = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::UWorld));
             gameData.GameState = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + Offset::GameState));
             gameData.CurrentLevel = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + Offset::CurrentLevel));
@@ -212,27 +212,35 @@ void UpdateAddress() {
             gameData.PlayerController = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.LocalPlayer + Offset::PlayerController));
             gameData.AcknowledgedPawn = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::AcknowledgedPawn));
             gameData.PlayerCameraManager = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::PlayerCameraManager);
-            gameData.MyHUD = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerCameraManager + Offset::ViewTarget);
+            gameData.ViewTarget = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerCameraManager + Offset::ViewTarget);
+            gameData.MyHUD = VmmCore::ReadValue<DWORD_PTR>(gameData.PlayerController + Offset::MyHUD);
             UpdateGameScene();
+
+            gameData.Actor = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.CurrentLevel + Offset::Actor));
+
             if (gameData.Scene == Scene::Gameing) {
                 gameData.PlayerCount = VmmCore::ReadValue<int>(gameData.GameState + Offset::PlayerArray + 0x8);
                 if (JudgeOneself()) {
-                    DWORD_PTR NamePtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Playname);
+                    DWORD_PTR NamePtr = VmmCore::ReadValue<DWORD_PTR>(gameData.ViewTarget + Offset::Playname);
                     if (!Utils::ValidPtr(NamePtr)) {
                         FText NameText = VmmCore::ReadValue<FText>(NamePtr);
                         std::string Name = Utils::UnicodeToAnsi(NameText.buffer);
                         gameData.Myself.ClanName = Utils::AnalyzeClanName(Name);
                         gameData.Myself.Name = Utils::AnalyzeName(Name);
-                        gameData.Myself.Mesh = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::Mesh);
+                        if (gameData.Myself.Name == "") {
+                            gameData.Myself.Name = "Driver";
+                        } else {
+                            gameData.Myself.isGetPlayer = true;
+                        }
+                        gameData.Myself.Mesh = VmmCore::ReadValue<DWORD_PTR>(gameData.ViewTarget + Offset::Mesh);
                         gameData.Myself.AnimScript = VmmCore::ReadValue<DWORD_PTR>(gameData.Myself.Mesh + Offset::AnimScriptInstance);
-                        gameData.Myself.TeamID = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::LastTeamNum);
+                        gameData.Myself.TeamID = VmmCore::ReadValue<int>(gameData.ViewTarget + Offset::LastTeamNum);
                         gameData.Myself.TeamID = gameData.Myself.TeamID >= 100000 ? gameData.Myself.TeamID - 100000 : gameData.Myself.TeamID;
                     }
                 }
-                gameData.Map.WorldOriginLocation = Vector3(VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap),
+                gameData.mapRadar.world_location = Vector3(VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap),
                                                            VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap + 0x4), 0.0f);
             }
-            gameData.Actor = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.CurrentLevel + Offset::Actor));
         }
     }
 }
@@ -257,19 +265,7 @@ void UpdateEntitys() {
             DWORD_PTR Actors = (Actor + (i * 0x8));
             VmmCore::ScatterReadEx(0, Actors, (DWORD_PTR*)&entitys[i]);
         }
-        auto start_time = std::chrono::high_resolution_clock::now();
-        auto result = VmmCore::ScatterExecuteReadEx(0);
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-        if (duration.count() > 50) {
-            std::cout << "Time taken: " << duration.count() << " milliseconds." << std::endl;
-            if (result == FALSE) {
-                std::cout << "FALSE" << std::endl;
-            } else {
-                std::cout << "TRUE" << std::endl;
-            }
-        }
+        VmmCore::ScatterExecuteReadEx(0);
 
         entitys = GetEntitys((Actor));
         for (auto entity : entitys) {
@@ -290,13 +286,15 @@ void UpdateEntitys() {
             if (entity.decodeID == 0 && entity.ID != 0) {
                 auto decodeID = Decrypt::CIndex(entity.ID);
                 entity.decodeID = decodeID;
+                entity.type = EntityType::Unknown;
             }
         }
         // std::vector<ActorEntityInfo> gEntitys;
         // for (auto entity : entitys) {
         //     if (entity == 0) continue;
 
-        //     if (std::find_if(gEntitys.begin(), gEntitys.end(), [entity](const ActorEntityInfo& info) { return info.Entity == entity; }) == gEntitys.end()) {
+        //     if (std::find_if(gEntitys.begin(), gEntitys.end(), [entity](const ActorEntityInfo& info) { return info.Entity == entity; }) ==
+        //     gEntitys.end()) {
         //         gEntitys.push_back({entity, 0, 0, EntityType::Unknown});
         //         DWORD_PTR entityptr = entity + Offset::ObjID;
         //         SetScatterPrepare<DWORD_PTR>(entityptr);
@@ -322,10 +320,11 @@ void UpdateEntitys() {
         itemGroups = Data::GetItemGroups();
         for (auto& entity : CacheEntity) {
             if (entity.decodeID == 0) continue;
-            EntityInfo entityInfo = findEntityInfoByID(entity.decodeID);
+            if (entity.type != EntityType::Unknown) continue;
+            // EntityInfo entityInfo = findEntityInfoByID(entity.decodeID);
+            EntityInfo entityInfo = GNames::GetName(entity.decodeID, 0);
             entity.type = entityInfo.Type;
             auto entityptr = entity.Entity;
-
             if ((entity.type == EntityType::Player || entity.type == EntityType::AI)) {
                 if ((std::find_if(players.begin(), players.end(), [entityptr](const PlayerInfo& info) { return info.Entity == entityptr; })) == players.end()) {
                     players.push_back({entity.type, entity.Entity, entity.decodeID});
@@ -433,13 +432,6 @@ void UpdatePlayers() {
         }
 
         VmmCore::ScatterExecuteReadEx(2);
-        for (auto it = players.begin(); it != players.end();) {
-            if (it->MeshComponent == 0 || it->PlayerState == 0) {
-                it = players.erase(it);
-            } else {
-                ++it;
-            }
-        }
 
         for (PlayerInfo& player : players) {
             player.PlayerState = Decrypt::Xe(player.PlayerState);
@@ -478,7 +470,6 @@ void UpdatePlayers() {
 
         for (PlayerInfo& player : players) {
             player.WeaponID = Decrypt::CIndex(player.WeaponID);
-            // player.WeaponName = findEntityInfoByID(player.WeaponID).DisplayName;
             player.WeaponName = findNameByID(player.WeaponID);
             if (player.TeamID >= 100000) {
                 player.TeamID = player.TeamID - 100000;
@@ -486,8 +477,9 @@ void UpdatePlayers() {
             player.IsMyTeam = player.TeamID == gameData.Myself.TeamID;
             std::string Name = Utils::UnicodeToAnsi(player.CharacterName.buffer);
             player.Name = Utils::AnalyzeName(Name);
+            if (player.Name == "") player.Name = "Driver";
             player.TeamName = Utils::AnalyzeClanName(Name);
-            if (player.Name == gameData.Myself.Name && player.Name != "" || player.Entity == gameData.Myself.PlayerPtr) {
+            if (player.Name == gameData.Myself.Name && player.Name != "Driver" || player.Entity == gameData.Myself.PlayerPtr) {
                 gameData.Myself.PlayerPtr = player.Entity;
                 gameData.Myself.Location = player.Location;
             }
@@ -531,11 +523,38 @@ void UpdateCamera() {
     gameData.Location = Location;
     gameData.Rotation = Rotation;
 }
+
+// 比较函数，用于std::sort
+bool compareByDistance(const PlayerInfo& a, const PlayerInfo& b) { return a.Distance > b.Distance; }
+
+Vector3 PlayerToRadarPosition(Vector3 position) {
+    // Vector3 value;
+    auto value = position + gameData.mapRadar.world_location;
+    if (value.x < 0) value = {-value.x, value.y, value.z};
+    if (value.y < 0) value = {value.x, -value.y, value.z};
+    if (value.z < 0) value = {value.x, value.y, -value.z};
+    return value;
+}
+
 void UpdateSkeleton() {
     while (true) {
         if (gameData.Scene != Scene::Gameing) continue;
-        std::vector<PlayerInfo> players = Data::GetCachePlayers2();
+        std::vector<PlayerInfo> players;
+        std::vector<PlayerInfo> Cacheplayers = Data::GetCachePlayers2();
 
+        for (PlayerInfo& player : Cacheplayers) {
+            if (player.Distance > 1000.0f || player.Distance < 0.0f) {
+                continue;
+            } else if (!std::isnan(player.Distance)) {  //|| std::isinf(player.Distance)
+                continue;
+            } else if (player.TeamID < 0 || player.TeamID > 299) {
+                continue;
+            } else if (player.Entity == 0 || player.PlayerState == 0 || player.MeshComponent == 0 || player.StaticMesh == 0) {
+                continue;
+            } else {
+                players.push_back(player);
+            }
+        }
         if (players.size() == 0) continue;
 
         for (PlayerInfo& player : players) {
@@ -545,12 +564,20 @@ void UpdateSkeleton() {
         }
         VmmCore::ScatterExecuteReadEx(3);
         UpdateCamera();
+        float ImageMapSize = gameData.mapRadar.radar_size;
         for (PlayerInfo& player : players) {
             for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
                 player.Skeleton.LocationBones[bone] = VectorHelper::GetBoneWithRotation(player.Skeleton.Bones[bone], player.ComponentToWorld);
                 player.Skeleton.ScreenBones[bone] = VectorHelper::WorldToScreen(player.Skeleton.LocationBones[bone]);
             }
+            const Vector3 WorldLocation = PlayerToRadarPosition(player.Location);
+            Vector3 pos = {WorldLocation.x / ImageMapSize, WorldLocation.y / ImageMapSize, WorldLocation.z};
+            gameData.mapRadar.rader_players[player.Entity] = pos;
         }
+        std::sort(players.begin(), players.end(), compareByDistance);
+
+        const Vector3 WorldLocations = PlayerToRadarPosition(gameData.Myself.Location);
+        gameData.Myself.AtlaseLocation = {WorldLocations.x / ImageMapSize, WorldLocations.y / ImageMapSize};
         Data::SetPlayers(players);
     }
 }
@@ -568,13 +595,13 @@ void HackStart() {
     thread5.detach();
     std::thread thread6(Radar::Update);
     thread6.detach();
-    std::thread thread7(UpdateItem);
-    thread7.detach();
+    // std::thread thread7(UpdateItem);
+    // thread7.detach();
 
     while (true) {
         if (gameData.Scene == Scene::Gameing) {
         } else {
-            Sleep(100);
+            // Data::Clears();
         }
     }
 }

@@ -6,7 +6,8 @@ FVector2D DefaultSize = {1080.0f, 1080.0f};
 
 bool Radar::GetMap() {
     float MapSize = 0.0f;
-    std::string MapName = gameData.Map.MapName;
+    float raderMapSize = 0.0f;
+    std::string MapName = gameData.mapRadar.map_name;
     if (MapName == "Tiger_Main" || MapName == "Kiki_Main" || MapName == "Desert_Main" || MapName == "Neon_Main") {
         MapSize = 408000.f;
     } else if (MapName == "Desert_Main" || MapName == "Neon_Main") {
@@ -27,18 +28,19 @@ bool Radar::GetMap() {
 
     if (MapName == "Erangel_Main" || MapName == "Baltic_Main" || MapName == "Desert_Main" || MapName == "Kiki_Main" || MapName == "Tiger_Main" ||
         MapName == "DihorOtok_Main" || MapName == "Neon_Main") {
-        gameData.Radar.ImageMapSize = 816000.f;
+        raderMapSize = 816000.f;
     } else if (MapName == "Savage_Main") {
-        gameData.Radar.ImageMapSize = 408000.f;
+        raderMapSize = 408000.f;
     } else if (MapName == "Summerland_Main" || MapName == "Range_Main") {
-        gameData.Radar.ImageMapSize = 204000.f;
+        raderMapSize = 204000.f;
     } else if (MapName == "Chimera_Main") {
-        gameData.Radar.ImageMapSize = 306000.f;
+        raderMapSize = 306000.f;
     } else if (MapName == "Heaven_Main" || MapName == "Boardwalk_Main" || MapName == "Italy_Main") {
-        gameData.Radar.ImageMapSize = 102000.f;
+        raderMapSize = 102000.f;
     }
 
-    gameData.Map.MapSize = MapSize;
+    gameData.mapRadar.map_size = MapSize;
+    gameData.mapRadar.radar_size = raderMapSize;
 
     if (MapSize > 0) {
         return true;
@@ -47,26 +49,40 @@ bool Radar::GetMap() {
     }
 }
 
-// float WorldToRadar(float location) {
-//     // 1.004
-//     float Scale = 1;
-//     if (MapName == "Baltic_Main") {
-//         Scale = 0.99609375f;
+// struct FTslWidgetState {
+//     unsigned char Pad[0x30];
+//     unsigned char WidgetClass[0x8];
+//     unsigned char pad_38[0x8];
+//     ULONG64 Widget;
+//     unsigned char pad_48[0x20];
+// };
+// bool Radar::GetMiniMap() {
+//     auto WidgetStateMap = Drive::ReadValue<TMap<FString, FTslWidgetState>>(gameData.MyHUD + gameData.Offset["WidgetStateMap"]);
+
+//     for (auto& Elem : WidgetStateMap.GetVector()) {
+//         auto& Key = Elem.Value.Key;
+//         auto& Value = Elem.Value.Value;
+//         if (Utils::ValidPtr(Value.Widget)) continue;
+//         ULONG ID = Decrypt::CIndex(Drive::ReadValue<ULONG>(Value.Widget + gameData.Offset["ObjID"]));
+//         std::string WidgetPtrName = GNames::GetName(ID);
+
+//         if (WidgetPtrName == "MinimapOriginalType_C") {
+//             gameData.Radar.MiniMapWidget = Value.Widget;
+//             return true;
+//         }
 //     }
-//     return location / gameData.Radar.ImageMapSize * mapSprite.getLocalBounds().height *
-//            (gameData.Radar.ImageMapSize == 816000 ? Scale : 1);
+//     return false;
 // }
 
 bool Radar::GetMiniMap() {
-    uint64_t minMapPtr = VmmCore::ReadValue<uint64_t>(gameData.MyHUD + Offset::WidgetStateMap);
+    DWORD_PTR minMapPtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::WidgetStateMap);
     int minMapInt = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::WidgetStateMap + 0x8);
-    for (int i = 0; i < minMapInt; i++) {
-        uint64_t minMapData = VmmCore::ReadValue<uint64_t>(minMapPtr + (i * 0x8));
+    for (int i = 0; i < 500; i++) {
+        DWORD_PTR minMapData = VmmCore::ReadValue<DWORD_PTR>(minMapPtr + (i * 0x8));
         int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(minMapData + Offset::ObjID));
         std::string WidgetName = GNames::GetNameByID(ID);
-
         if (WidgetName == "MinimapOriginalType_C") {
-            gameData.Radar.MiniMapWidget = minMapData;
+            gameData.mapRadar.small_map_radar = minMapData;
             return true;
         }
     }
@@ -77,18 +93,18 @@ bool Radar::GetMiniMap() {
 bool Radar::GetMapGrid() {
     uint64_t BlockInputWidgetList = VmmCore::ReadValue<uint64_t>(gameData.MyHUD + Offset::BlockInputWidgetList);
     int BlockInputWidgetListCount = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::BlockInputWidgetList + 0x8);
-    for (int i = 0; i < BlockInputWidgetListCount; i++) {
+    for (int i = 0; i < 500; i++) {
         uint64_t Widget = VmmCore::ReadValue<uint64_t>(BlockInputWidgetList + i * 0x8);
         int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(Widget + Offset::ObjID));
         std::string WidgetName = GNames::GetNameByID(ID);
         if (WidgetName == "NewWorldMapWidget_BP_C") {
-            gameData.Map.MapGrid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid + 0x30);
-            gameData.Map.MapWidget = Widget;
+            gameData.mapRadar.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid + 0x30);
+            gameData.mapRadar.atlas_radar = Widget;
             return true;
         }
         if (WidgetName == "UI_TrainingWorldMapWidget_C") {
-            gameData.Map.MapGrid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid);
-            gameData.Map.MapWidget = Widget;
+            gameData.mapRadar.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid);
+            gameData.mapRadar.atlas_radar = Widget;
             return true;
         }
     }
@@ -97,58 +113,50 @@ bool Radar::GetMapGrid() {
 }
 
 bool Radar::GetVisibility() {
-    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.Map.MapWidget + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
-    gameData.Map.Visibility = Visibility;
-    return gameData.Map.Visibility;
+    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.mapRadar.atlas_radar + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
+    gameData.mapRadar.is_ibility = Visibility;
+    return gameData.mapRadar.is_ibility;
 }
 
 float Radar::GetZoomFactor() {
-    gameData.Map.Slot = VmmCore::ReadValue<DWORD_PTR>(gameData.Map.MapGrid + Offset::Slot);
-    if (Utils::ValidPtr(gameData.Map.Slot)) return 0.0f;
-    gameData.Map.Layout = VmmCore::ReadValue<FMargin>(gameData.Map.Slot + Offset::LayoutData + 0x0);
-    const FVector2D CurrentSize = {gameData.Map.Layout.Right, gameData.Map.Layout.Bottom};
+    gameData.mapRadar.map_address = VmmCore::ReadValue<DWORD_PTR>(gameData.mapRadar.map_grid + Offset::Slot);
+    if (Utils::ValidPtr(gameData.mapRadar.map_address)) return 0.0f;
+    gameData.mapRadar.declare = VmmCore::ReadValue<FMargin>(gameData.mapRadar.map_address + Offset::LayoutData + 0x0);
+    const FVector2D CurrentSize = {gameData.mapRadar.declare.Right, gameData.mapRadar.declare.Bottom};
     auto factor = CurrentSize.X / DefaultSize.X;
-    gameData.Map.MapZoomValue = factor;
+    gameData.mapRadar.map_zoom_value = factor;
     return factor;
 };
 
-Vector3 Radar::PlayerToRadarPosition(Vector3 position) {
-    // Vector3 value;
-    auto value = position + gameData.Map.WorldOriginLocation;
-    if (value.x < 0) value = {-value.x, value.y, value.z};
-    if (value.y < 0) value = {value.x, -value.y, value.z};
-    if (value.z < 0) value = {value.x, value.y, -value.z};
-    return value;
-}
-
 FVector2D Radar::GetPosition() {
-    auto Alignment = VmmCore::ReadValue<FVector2D>(gameData.Map.Slot + Offset::LayoutData + 0x0 + Offset::Alignment);
-    const FVector2D CurrentPos = {gameData.Map.Layout.Right * (Alignment.X - 0.5f) - gameData.Map.Layout.Left,
-                                  gameData.Map.Layout.Bottom * (Alignment.Y - 0.5f) - gameData.Map.Layout.Top};
-    gameData.Map.Position = {CurrentPos.X / DefaultSize.X / gameData.Map.MapZoomValue * 2.0f, CurrentPos.Y / DefaultSize.Y / gameData.Map.MapZoomValue * 2.0f};
-    return gameData.Map.Position;
+    auto Alignment = VmmCore::ReadValue<FVector2D>(gameData.mapRadar.map_address + Offset::LayoutData + 0x0 + Offset::Alignment);
+    const FVector2D CurrentPos = {gameData.mapRadar.declare.Right * (Alignment.X - 0.5f) - gameData.mapRadar.declare.Left,
+                                  gameData.mapRadar.declare.Bottom * (Alignment.Y - 0.5f) - gameData.mapRadar.declare.Top};
+    gameData.mapRadar.position = {CurrentPos.X / DefaultSize.X / gameData.mapRadar.map_zoom_value * 2.0f,
+                                  CurrentPos.Y / DefaultSize.Y / gameData.mapRadar.map_zoom_value * 2.0f};
+    return gameData.mapRadar.position;
 }
 
 void Radar::Update() {
     while (true) {
         if (gameData.Scene != Scene::Gameing) continue;
 
-        if (gameData.Map.MapSize <= 0) {
+        if (gameData.mapRadar.map_size <= 0) {
             if (!Radar::GetMap()) {
                 Sleep(10);
                 continue;
             }
         }
 
-        if (Utils::ValidPtr(gameData.Map.MapGrid)) {
+        if (Utils::ValidPtr(gameData.mapRadar.small_map_radar)) {
+            if (!Radar::GetMiniMap()) {
+            }
+        }
+        if (Utils::ValidPtr(gameData.mapRadar.map_grid)) {
             if (!Radar::GetMapGrid()) {
             }
         }
-        // if (Utils::ValidPtr(gameData.Radar.MiniMapWidget)) {
-        //     if (!Radar::GetMiniMap()) {
-        //     }
-        // }
-        if (!gameData.Map.Visibility) {
+        if (!gameData.mapRadar.is_ibility) {
             if (!Radar::GetVisibility()) {
             }
         }
@@ -156,22 +164,8 @@ void Radar::Update() {
         Radar::GetZoomFactor();
         Radar::GetPosition();
 
-        const float MapSizeFactored = gameData.Map.MapSize / gameData.Map.MapZoomValue;
-        const Vector3 WorldCenterLocation = {gameData.Map.MapSize * (1.0f + gameData.Map.Position.X), gameData.Map.MapSize * (1.0f + gameData.Map.Position.Y),
-                                             0.0f};
-
-        const auto players = Data::GetPlayers();
-        for (auto player : players) {
-            const Vector3 WorldLocation = PlayerToRadarPosition(player.Location);
-            const Vector3 RadarPos = WorldLocation - WorldCenterLocation;
-            const FVector2D RadarScreenPos = gameData.Map.ScreenCenter + FVector2D{RadarPos.x / MapSizeFactored * gameData.Map.ScreenCenter.Y,
-                                                                                   RadarPos.y / MapSizeFactored * gameData.Map.ScreenCenter.Y};
-
-            gameData.Map.Players[player.Entity] = {RadarScreenPos};
-            Vector3 minRadarPos = {RadarScreenPos.X / gameData.Map.Layout.Right, RadarScreenPos.Y / gameData.Map.Layout.Bottom, WorldLocation.z};
-            Vector3 pos = {WorldLocation.x / gameData.Radar.ImageMapSize, WorldLocation.y / gameData.Radar.ImageMapSize, WorldLocation.z};
-            // Vector3 pos = {WorldLocation.x, WorldLocation.y, WorldLocation.z};
-            gameData.Radar.Players[player.Entity] = pos;
-        }
+        const float MapSizeFactored = gameData.mapRadar.map_size / gameData.mapRadar.map_zoom_value;
+        const Vector3 WorldCenterLocation = {gameData.mapRadar.map_size * (1.0f + gameData.mapRadar.position.X),
+                                             gameData.mapRadar.map_size * (1.0f + gameData.mapRadar.position.Y), 0.0f};
     }
 }

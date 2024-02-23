@@ -10,6 +10,21 @@ EntityInfo findEntityInfoByID(int id) {
 
     return EntityInfo{"Unknown", EntityType::Unknown, 0};
 }
+EntityInfo findEntityInfoByName(std::string name) {
+    for (const auto& pair : EntityLists) {
+        const EntityInfo& entity = pair.second;
+        if (pair.first == name) {
+            return entity;
+        }
+    }
+
+    return EntityInfo{"Unknown", EntityType::Unknown, 0};
+}
+// EntityInfo findEntityInfoByName(std::string name) {
+//     EntityInfo entity = {"Unknown", EntityType::Unknown, 0};
+//     entity = EntityLists[name];
+//     return entity;
+// }
 
 std::string findNameByID(int id) {
     for (const auto& pair : EntityLists) {

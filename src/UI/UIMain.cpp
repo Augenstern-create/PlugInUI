@@ -20,7 +20,8 @@
 static std::string CurrentDirectory;
 // imgui
 namespace ImGui {
-unsigned int Map = 0;
+
+TextureID Map = {nullptr, {0.0f, 0.0f}};
 }  // namespace ImGui
 
 class WindowData {
@@ -33,6 +34,8 @@ class WindowData {
     ImFont* font_;
     int width_;
     int height_;
+    int left_;
+    int top_;
     std::string font_path_;
     std::string font_name_;
     std::string windows_name_;
@@ -43,7 +46,9 @@ class WindowData {
           context_(nullptr),
           io_(nullptr),
           width_((int)GetSystemMetrics(SM_CXSCREEN)),
-          height_((int)GetSystemMetrics(SM_CYSCREEN)) {
+          height_((int)GetSystemMetrics(SM_CYSCREEN)),
+          left_(0),
+          top_(0) {
         std::filesystem::path currentPath = std::filesystem::current_path();
         std::string run_path = currentPath.string();
         font_path_ = run_path + "\\DouyinSansBold.otf";
@@ -57,11 +62,11 @@ class WindowData {
         }
         IMGUI_CHECKVERSION();
         context_ = ImGui::CreateContext();
+        SwitchContext();
         io_ = &ImGui::GetIO();
         (void)io_;
         io_->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
         io_->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-        ImGui::SetCurrentContext(context_);
         glfwMakeContextCurrent(windows_);
         ImGui_ImplGlfw_InitForOpenGL(windows_, mes);
         ImGui_ImplOpenGL3_Init();
@@ -107,6 +112,46 @@ static WindowData g_main_form;
 static WindowData g_detached_form;
 static std::string g_Path = "\\photograph\\Weapon";
 
+void GetWindowsResolution(int* width, int* height) {
+    int monitorCount = 0;
+    GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+    if (monitorCount < 1) {
+        printf("No monitors connected.\n");
+        return;
+    }
+    for (int i = 0; i < monitorCount; i++) {
+        GLFWmonitor* monitor = monitors[i];
+        const GLFWvidmode* vidmode = glfwGetVideoMode(monitor);
+        if (vidmode) {
+            if (vidmode->width != GetSystemMetrics(SM_CXSCREEN) && vidmode->height != GetSystemMetrics(SM_CYSCREEN)) {
+                (*width) = vidmode->width;
+                (*height) = vidmode->height;
+            }
+
+        } else {
+            printf("Failed to get video mode for monitor %d\n", i);
+        }
+    }
+}
+
+void GetWindowWorkArea(HWND hWnd, int* left, int* top) {
+    RECT rect;
+    GetWindowRect(hWnd, &rect);
+    POINT point = {rect.left, rect.top};
+
+    HMONITOR hMonitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
+    if (hMonitor != NULL) {
+        MONITORINFO monitorInfo;
+        monitorInfo.cbSize = sizeof(MONITORINFO);
+        GetMonitorInfo(hMonitor, &monitorInfo);
+        *left = monitorInfo.rcWork.left;
+        *top = monitorInfo.rcWork.top;
+    } else {
+        *left = -1;
+        *top = -1;
+    }
+}
+
 int UIPlay() {
     if (!glfwInit()) {
         LOGE("Failed to initialize GLFW\n");
@@ -116,11 +161,16 @@ int UIPlay() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
+    int widths, width, heights, height;
+    widths = width = GetSystemMetrics(SM_CXSCREEN);
+    heights = height = GetSystemMetrics(SM_CYSCREEN);
+
+    GetWindowsResolution(&widths, &heights);
 
     // Create the first window
     int borderAndTitleHeight = (GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYFIXEDFRAME)) * 3;
-    g_main_form.width_ = g_main_form.height_ - borderAndTitleHeight;
-    g_main_form.height_ -= borderAndTitleHeight;
+    g_main_form.width_ = (int)(g_main_form.width_ * 0.75);
+    g_main_form.height_ = (int)(g_main_form.height_ * 0.75);
     g_main_form.windows_name_ = "Read";
     g_main_form.font_name_ = "\\DouyinSansBold.otf";
     if (!g_main_form.InitForm(true)) {
@@ -154,7 +204,9 @@ int UIPlay() {
     SetWindowLong(g_detached_form.hwnd_, GWL_STYLE, WS_POPUP);
     // SetWindowLongPtr(g_detached_form.hwnd_, GWL_EXSTYLE, WS_EX_TRANSPARENT);
     while (!glfwWindowShouldClose(g_main_form.windows_) && !glfwWindowShouldClose(g_detached_form.windows_)) {
-        //
+        int windowWidth, windowHeight;
+        glfwGetWindowSize(g_main_form.windows_, &windowWidth, &windowHeight);
+
         g_main_form.SwitchContext();
         glfwPollEvents();
         ImGui_ImplGlfw_NewFrame();
@@ -162,20 +214,29 @@ int UIPlay() {
         ImGui::NewFrame();
         bool show_menu_window = true;
         bool show_radar_window = true;
-        bool show_debug_window = true;
+        bool show_debug_window = false;
         bool show_skeleton_window = true;
-        ImGui::ShowDebugWindow(&show_debug_window, ImVec2((float)g_main_form.width_, (float)g_main_form.height_));
+        ImGui::ShowDebugWindow(&show_debug_window, ImVec2((float)windowWidth, (float)windowHeight));
         if (show_menu_window) {
-            ImGui::ShowMenuWindow(&show_menu_window, ImVec2((float)g_main_form.width_, (float)g_main_form.height_));
+            ImGui::ShowMenuWindow(&show_menu_window, ImVec2((float)windowWidth, (float)windowHeight));
         }
         if (gameData.Scene == Scene::Gameing) {
-            if (ImGui::Map == 0) {
-                // gameData.Map.MapName  "Savage_Main"
-                std::string Path = CurrentDirectory + "\\photograph\\" + gameData.Map.MapName + ".png";
+            if (ImGui::Map.texture == nullptr) {
+                // gameData.mapRadar.map_name  "Savage_Main"
+                std::string Path = CurrentDirectory + "\\photograph\\" + gameData.mapRadar.map_name + ".png";
                 // std::string Path = "C:\\Users\\25026\\Pictures\\GenshinImpactCloudGame\\1-1.png";
-                ImGui::Map = ImGui::CreateTextureFromImage(Path.c_str());
+                ImGui::Map = ImGui::LoadingTexturesUsingImage(Path.c_str());
             }
-            ImGui::ShowRadarWindow(&show_radar_window, ImVec2((float)g_main_form.width_, (float)g_main_form.height_));
+            ImGui::ShowRadarWindow(&show_radar_window, ImVec2((float)windowWidth, (float)windowHeight));
+        } else {
+            if (ImGui::Map.texture != nullptr) {
+                ImTextureID* texturePtr = &ImGui::Map.texture;
+                GLuint textureID = reinterpret_cast<GLuint>(*texturePtr);
+                glDeleteTextures(1, &textureID);
+                ImGui::Map.texture = nullptr;
+                ImGui::Map.size = {0.0f, 0.0f};
+                ImGui::Map.channels = 0;
+            }
         }
 
         ImGui::Render();
@@ -188,6 +249,7 @@ int UIPlay() {
                 glfwShowWindow(g_detached_form.windows_);
                 glfwFocusWindow(g_main_form.windows_);
             }
+
             g_detached_form.SwitchContext();
             ImGui_ImplGlfw_NewFrame();
             ImGui_ImplOpenGL3_NewFrame();

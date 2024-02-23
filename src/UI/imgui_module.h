@@ -11,11 +11,29 @@ constexpr ImVec2 operator-(float rhs, const ImVec2& lhs) { return ImVec2(rhs - l
 constexpr ImVec2 operator-(const ImVec2& rhs, float lhs) { return ImVec2(rhs.x - lhs, rhs.y - lhs); }
 constexpr ImVec2 operator*(const ImVec2& lhs, float rhs) { return ImVec2(lhs.x * rhs, lhs.y * rhs); }
 
+constexpr ImVec2 operator*(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x * rhs.x, lhs.y * rhs.y); }
+constexpr ImVec2 operator/(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x / rhs.x, lhs.y / rhs.y); }
+
+constexpr bool operator!=(const ImVec2& lhs, const ImVec2& rhs) { return lhs.x != rhs.x || lhs.y != rhs.y; }
+constexpr bool operator==(const ImVec2& lhs, const ImVec2& rhs) { return lhs.x == rhs.x && lhs.y == rhs.y; }
+constexpr bool operator<(const ImVec2& lhs, const ImVec2& rhs) { return lhs.x < rhs.x || lhs.y < rhs.y; }
+constexpr ImVec2 operator-=(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
+constexpr ImVec2 operator+=(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
+
 namespace ImGui {
+struct TextureID {
+    ImTextureID texture;
+    ImVec2 size;
+    int channels;
+};
+IMGUI_API void RoundedRectangleSubform(const char* text, ImVec2 size, ImVec2 pos, float rounding, ImU32 Color);
+IMGUI_API ImU32 InverseColor(ImU32 color);
+TextureID LoadingTexturesUsingImage(const char* path);
 IMGUI_API void RenderCustomSizedText(ImVec2 pos, const char* text, float FontSize, ImU32 Color = GetColorU32(ImGuiCol_Text), const char* text_end = NULL,
                                      bool hide_text_after_hash = true);
 IMGUI_API ImTextureID CreateTextureFromImage(const char* imageFilePath, ID3D11Device* device);
 IMGUI_API unsigned int CreateTextureFromImage(const char* imageFilePath);
+
 IMGUI_API bool CustomizedButton(const char* label, ImVec2& size, ImU32 borderColor, ImU32 textColor);
 IMGUI_API bool RenderCustomCheckbox(const char* label, bool* value, float fontSize);
 IMGUI_API void RenderCustomSlider(const char* label, float* value, float min, float max, float fontSize, const char* format = "%.3f");
@@ -37,7 +55,8 @@ IMGUI_API void DrawPlayerName(const char* txt, ImVec2 pos, float size, ImU32 col
 // 绘制距离
 IMGUI_API void DrawPlayerDistance(const char* txt, ImVec2 pos, float size, ImU32 color);
 // 绘制队伍id
-IMGUI_API void DrawPlayerTeamID(const char* txt, ImVec2 pos, ImVec2 pos2, float size, ImU32 color);
+// IMGUI_API void DrawPlayerTeamID(const char* txt, ImVec2 pos, ImVec2 pos2, float size, ImU32 color);
+IMGUI_API void DrawPlayerTeamID(const char* txt, ImVec2 pos, float size, float zoom, ImU32 color);
 // 绘制血量
 IMGUI_API void DrawPlayerHitPoint(int HP, ImVec2 pos, float size, ImU32 color, ImU32 color2 = IM_COL32(255, 255, 255, 255));
 // 绘制方框

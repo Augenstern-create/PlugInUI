@@ -5,8 +5,11 @@
 #include "UIMain.h"
 #include <windows.h>
 #include "game/LanguageSwitch.h"
+#include "game/offset.h"
 #include "vmmdll.h"
 #include "leechcore.h"
+
+#include "game/loading_files.h"
 static ID3D11Device* g_pd3dDevice = NULL;
 static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
 static IDXGISwapChain* g_pSwapChain = NULL;
@@ -34,11 +37,11 @@ int Refresh() {
 }
 void init() {
     ComponentsLists::LoadSet();
-    // gameData.Radar.ZoomFactor = 1.0f;
+    // InitLoadingFile();
 }
 
 int main(int, char**) {
-    std::cout << "Version : " << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << std::endl;
+    // std::cout << "Version : " << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << std::endl;
     SetConsoleOutputCP(CP_UTF8);
     init();
     if (!VmmCore::Initialize()) {

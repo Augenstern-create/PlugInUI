@@ -13,6 +13,7 @@
 #include "SrcUe4Math.h"
 #include "srcUtils.h"
 #include "imgui.h"
+#include "config.h"
 
 struct PlayerInfo {
     EntityType Type;                 // 实体类型
@@ -30,7 +31,7 @@ struct PlayerInfo {
     float HealthMax;                 // 生命值max
     float GroggyHealth;              // 濒死状态生命值
     float GroggyHealthMax;           // 濒死状态生命值max
-    float Distance;                  // 与玩家的距离
+    float Distance;                  // 距离
     bool IsMyTeam;                   // 是否为我方队伍
     bool IsSkeleton;                 // 骨骼可见
     DWORD_PTR RootComponent;         // 根组件指针
@@ -152,7 +153,8 @@ struct GameData {
     DWORD_PTR Actor;                // 指针地址
     DWORD_PTR AcknowledgedPawn;     // 本人数组
     DWORD_PTR PlayerCameraManager;  // 相机地址
-    DWORD_PTR MyHUD;                // 当前对象
+    DWORD_PTR ViewTarget;           // 当前对象
+    DWORD_PTR MyHUD;                // 地图组件
 
     Scene Scene = Scene::FindProcess;  // 场景
     int PlayerCount;                   // 玩家人数
@@ -165,10 +167,11 @@ struct GameData {
         std::string Name;
         std::string ClanName;
         int TeamID;
-        DWORD_PTR Mesh;        //
-        DWORD_PTR AnimScript;  //
-        Vector3 Location;      // 位置
-
+        DWORD_PTR Mesh;         //
+        DWORD_PTR AnimScript;   //
+        Vector3 Location;       // 位置
+        ImVec2 AtlaseLocation;  // 转换后位置
+        bool isGetPlayer = false;
     } Myself;
 
     float FOV;         // 视角
@@ -177,35 +180,13 @@ struct GameData {
     int ScreenWidth;
     int ScreenHeight;
 
+    ReadConfig readConfig;
+    SkeletonConfig skeletonConfig;
+    MapRadar mapRadar;
+    Setting setting;
+
     std::unordered_map<std::string, GamePlayerInfo> PlayerLists;  // 玩家列表
     mutable std::shared_mutex playerListsMutex;
-
-    struct {
-        DWORD_PTR MiniMapWidget;                         //
-        float ImageMapSize;                              // 雷达地图大小
-        float ZoomFactor;                                // 缩放因子
-        ImVec2 CenterPoint;                              // 小地图雷达中心点
-        FVector2D ScreenCenter;                          // 小地图雷达中心点偏移
-        bool MKey;                                       // M键状态
-        std::unordered_map<DWORD_PTR, Vector3> Players;  // 雷达玩家数据
-    } Radar;
-    struct {
-        DWORD_PTR MapWidget;                                                    // 地图小部件
-        DWORD_PTR MapGrid;                                                      // 地图网格
-        DWORD_PTR Slot;                                                         // 插槽
-        std::string MapName;                                                    // 地图名称
-        float MapSize;                                                          // 地图大小
-        float MapZoomValue;                                                     // 缩放大小
-        int MapPageIndex;                                                       // 地图索引
-        bool Visibility;                                                        // 可见性
-        FMargin Layout;                                                         // 布局
-        FVector2D Position;                                                     // 位置
-        Vector3 WorldOriginLocation;                                            // 世界地址 //初始位置
-        float ScreenWidth = 1440.0f;                                            //
-        float ScreenHeight = 900.0f;                                            //
-        FVector2D ScreenCenter = FVector2D(ScreenWidth / 2, ScreenHeight / 2);  //
-        std::unordered_map<DWORD_PTR, RadarPlayerData> Players;                 // 雷达玩家数据
-    } Map;
 
     struct {
         mutable std::shared_mutex CacheEntityMutex;    // 实体信息互斥锁
@@ -241,26 +222,9 @@ struct GameData {
             } AR;
         } AimBot;
         struct {
-            int DisplayDistance = 600;    // 显示距离
-            bool Skeleton = true;         // 骨骼显示
-            float SkeletonWidth = 0.5f;   // 骨骼宽度
-            bool TeamID = true;           // 队伍标识显示
-            bool Name = false;            // 名称显示
-            bool KillCount = true;        // 击杀数显示
-            bool SpectatedCount = true;   // 观察数显示
-            bool Distance = true;         // 距离显示
-            bool Health = true;           // 生命值显示
-            bool WepaonName = true;       // 武器名称显示
-            bool PartnerLevel = false;    // 伙伴等级显示
-            bool SurvivalLevel = false;   // 生存等级显示
-            bool CharacterState = false;  // 角色状态显示
-            bool KDA = false;             // 击败比例显示
-            bool Rank = false;            // 排名显示
-        } ESP;
-        struct {
-            ImU32 PlayerTeamCol = IM_COL32(255, 255, 60, 255);  // 玩家队伍颜色
-            ImU32 EnemyTeamCol = IM_COL32(255, 60, 60, 255);    // 敌人队伍颜色
-            ImU32 VehicleCol = IM_COL32(255, 255, 60, 255);     // 载具颜色
+            ImU32 PlayerTeamCol = IM_COL32(60, 60, 255, 255);  // 玩家队伍颜色
+            ImU32 EnemyTeamCol = IM_COL32(255, 60, 60, 255);   // 敌人队伍颜色
+            ImU32 VehicleCol = IM_COL32(255, 255, 60, 255);    // 载具颜色
 
             ImU32 TeamSkeletonCol = IM_COL32(255, 255, 60, 255);  // 队友骨骼颜色
             ImU32 EnemySkeletonCol = IM_COL32(255, 60, 60, 255);  // 敌人骨骼颜色
@@ -486,21 +450,7 @@ inline void Clears() {
         std::unique_lock<std::shared_mutex> lock(gameData.Actors.ProjectsMutex);
         gameData.Actors.Projects.clear();
     }
-    if (gameData.Radar.Players.size() != 0) {
-        gameData.Radar.Players.clear();
-        gameData.Radar.ZoomFactor = 0;
-        gameData.Radar.ScreenCenter = {0, 0};
-    }
-    if (gameData.Map.Players.size() != 0) {
-        gameData.Map.Players.clear();
-        gameData.Map.MapWidget = 0;
-        gameData.Map.MapGrid = 0;
-        gameData.Map.Slot = 0;
-        gameData.Map.MapSize = 0;
-        gameData.Map.MapZoomValue = 0;
-        gameData.Map.Visibility = false;
-        gameData.Map.MapName = "";
-    }
+
     if (!gameData.Myself.Name.empty() || gameData.Myself.PlayerPtr != 0) {
         gameData.Myself.Name = "";
         gameData.Myself.PlayerPtr = 0;
@@ -509,6 +459,20 @@ inline void Clears() {
         gameData.Myself.Mesh = 0;
         gameData.Myself.AnimScript = 0;
         gameData.Myself.Location = {0, 0, 0};
+    }
+    if (gameData.mapRadar.map_name != "") {
+        gameData.mapRadar.map_grid = 0;
+        gameData.mapRadar.atlas_radar = 0;
+        gameData.mapRadar.small_map_radar = 0;
+        gameData.mapRadar.map_address = 0;
+        gameData.mapRadar.is_ibility = false;
+        gameData.mapRadar.map_id = 0;
+        gameData.mapRadar.map_zoom_value = 0;
+        gameData.mapRadar.map_size = 0;
+        gameData.mapRadar.radar_size = 0;
+        gameData.mapRadar.position = {0.0f, 0.0f};
+        gameData.mapRadar.declare = {0.0f, 0.0f, 0.0f, 0.0f};
+        gameData.mapRadar.rader_players.clear();
     }
 
     Sleep(100);

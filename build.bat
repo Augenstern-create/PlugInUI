@@ -27,6 +27,7 @@ if %errorlevel% neq 0 (
 
 xcopy /E /I /Y /D %ROOT_DIR%config %BUILD_DIR%\Release
 xcopy /E /I /Y /S /D %ROOT_DIR%photograph %BUILD_DIR%\Release\photograph
+xcopy /E /I /Y /S /D %ROOT_DIR%offset %BUILD_DIR%\Release\offset
 xcopy /C /I /Y /D %ROOT_DIR%lib\MemProcFS\lib\*.dll "%BUILD_DIR%\Release" 
 xcopy /C /I /Y /D %ROOT_DIR%lib\curl\lib\*.dll "%BUILD_DIR%\Release" 
 

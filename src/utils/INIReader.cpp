@@ -14,7 +14,7 @@
 #include <cstdlib>
 #include "ini.h"
 #include "INIReader.h"
-
+#include <iostream>
 using std::string;
 
 INIReader::INIReader(const string& filename) { _error = ini_parse(filename.c_str(), ValueHandler, this); }
@@ -29,6 +29,9 @@ int INIReader::ParseError() const { return _error; }
 string INIReader::Get(const string& section, const string& name, const string& default_value) const {
     string key = MakeKey(section, name);
     // Use _values.find() here instead of _values.at() to support pre C++11 compilers
+    // for (const auto& pair : _values) {
+    //     std::cout << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
+    // }
     return _values.count(key) ? _values.find(key)->second : default_value;
 }
 

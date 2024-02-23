@@ -9,6 +9,14 @@ DWORD Decrypt::CIndex(DWORD value) {
     return rotated ^ (rotated << 0x10) ^ Offset::XorKey2;
 }
 
+// DWORD Decrypt::CIndex(DWORD value) {
+//     DWORD xorResult = value ^ gameData.Offset["DecryptNameIndexXorKey1"];
+//     DWORD rotated = gameData.Offset["DecryptNameIndexRor"] ? _rotr(xorResult, gameData.Offset["DecryptNameIndexRval"])
+//                                                            : _rotl(xorResult, gameData.Offset["DecryptNameIndexRval"]);
+
+//     return rotated ^ (rotated << gameData.Offset["DecryptNameIndexSval"]) ^ gameData.Offset["DecryptNameIndexXorKey2"];
+// }
+
 void Decrypt::DestroyXe() { DecFunction = reinterpret_cast<DWORD_PTR (*)(DWORD_PTR key, DWORD_PTR base)>(0); }
 
 DWORD_PTR Decrypt::Xe(DWORD_PTR addr) {
@@ -34,8 +42,7 @@ DWORD_PTR Decrypt::Xe(DWORD_PTR addr) {
             ShellcodeBuff[6] = 0x90;
             ShellcodeBuff[7] = 0x90;
             ShellcodeBuff[8] = 0x90;
-            DecFunction = reinterpret_cast<decltype(DecFunction)>(
-                VirtualAlloc(nullptr, 4096, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+            DecFunction = reinterpret_cast<decltype(DecFunction)>(VirtualAlloc(nullptr, 4096, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE));
             RtlCopyMemory((LPVOID)DecFunction, (LPVOID)ShellcodeBuff, sizeof(ShellcodeBuff));
         }
 

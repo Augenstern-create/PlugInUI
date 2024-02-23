@@ -20,16 +20,18 @@
 #include "game/Constant.h"
 #include "game/Data.h"
 
+static ImVec2 g_display_size = {0, 0};
+
 void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
-    IM_ASSERT(ImGui::GetCurrentContext() != NULL && "Missing Dear ImGui context. Refer to examples app!");
-    ImGui::SetNextWindowSize({display_size.x, display_size.y * 0.5f}, ImGuiCond_FirstUseEver);
+    if (g_display_size != display_size) {
+        ImGui::SetNextWindowSize(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always);
+    }
     // ImGui::SetNextWindowPos({0, 0});
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_None;  // 0
 
     if (!ImGui::Begin("DebugWindow", p_open, window_flags)) {
         ImGui::End();
-
         return;
     }
 
@@ -37,175 +39,119 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
         if (ImGui::BeginTabItem("Main")) {
             ImGui::Text("PID: %d", gameData.PID);
             ImGui::Text("GameBase: %lld", gameData.GameBase);
-            ImGui::Text("UWorld: %lld", gameData.UWorld);
-            ImGui::Text("CurrentLevel: %lld", gameData.CurrentLevel);
             ImGui::Text("GNames: %lld", gameData.GNames);
-            ImGui::Text("GameInstance: %lld", gameData.GameInstance);
+            ImGui::Text("UWorld: %lld", gameData.UWorld);
             ImGui::Text("GameState: %lld", gameData.GameState);
+            ImGui::Text("CurrentLevel: %lld", gameData.CurrentLevel);
+            ImGui::Text("GameInstance: %lld", gameData.GameInstance);
             ImGui::Text("LocalPlayer: %lld", gameData.LocalPlayer);
             ImGui::Text("PlayerController: %lld", gameData.PlayerController);
+            ImGui::Text("Actor: %lld", gameData.Actor);
             ImGui::Text("AcknowledgedPawn: %lld", gameData.AcknowledgedPawn);
             ImGui::Text("PlayerCameraManager: %lld", gameData.PlayerCameraManager);
-            ImGui::Text("Actor: %lld", gameData.Actor);
+            ImGui::Text("ViewTarget: %lld", gameData.ViewTarget);
             ImGui::Text("MyHUD: %lld", gameData.MyHUD);
             ImGui::Text("Scene: %d", (int)gameData.Scene);
-            ImGui::Text("MapName: %s", gameData.Map.MapName.c_str());
-            ImGui::Text("MapPageIndex: %d", gameData.Map.MapPageIndex);
-            ImGui::Text("Windows Form Width: %d  Height: %d", gameData.ScreenWidth, gameData.ScreenHeight);
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("entity")) {
-            auto entitys = Data::GetCacheEntity();
-            ImGui::Text("size: %d", entitys.size());
-            ImGui::Columns(4, nullptr, false);
-            for (auto entity : entitys) {
-                ImGui::Text("Entity: %lld", entity.Entity);
-                ImGui::NextColumn();
-                ImGui::Text("ID: %d", entity.ID);
-                ImGui::NextColumn();
-                ImGui::Text("decodeID: %d", entity.decodeID);
-                ImGui::NextColumn();
-                ImGui::Text("type: %d", (int)entity.type);
-                ImGui::NextColumn();
-            }
-            ImGui::Columns(1);
-            ImGui::Text("end");
-
+        if (ImGui::BeginTabItem("MapRadar")) {
+            ImGui::Text("map_grid: %lld", gameData.mapRadar.map_grid);
+            ImGui::Text("atlas_radar: %lld", gameData.mapRadar.atlas_radar);
+            ImGui::Text("small_map_radar: %lld", gameData.mapRadar.small_map_radar);
+            ImGui::Text("is_ibility: %d", (int)gameData.mapRadar.is_ibility);
+            ImGui::Text("map_address: %lld", gameData.mapRadar.map_address);
+            ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
+            ImGui::Text("map_id: %d", gameData.mapRadar.map_id);
+            ImGui::Text("map_zoom_value: %f", gameData.mapRadar.map_zoom_value);
+            ImGui::Text("map_size: %f", gameData.mapRadar.map_size);
+            ImGui::Text("radar_size: %f", gameData.mapRadar.radar_size);
+            ImGui::Text("position: x: %f  y: %f  ", gameData.mapRadar.position.X, gameData.mapRadar.position.Y);
+            ImGui::Text("world_location: x: %f  y: %f  z: %f", gameData.mapRadar.world_location.x, gameData.mapRadar.world_location.y,
+                        gameData.mapRadar.world_location.z);
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Player")) {
+        if (ImGui::BeginTabItem("Gameing")) {
+            ImGui::Text("PlayerCount: %d", gameData.PlayerCount);
             ImGui::Text("ActorCount: %d", gameData.ActorCount);
-            auto Players = Data::GetPlayers();
-            ImGui::Columns(6, nullptr, false);
-            ImGui::SetColumnWidth(0, display_size.x / 8.0f);
-            ImGui::SetColumnWidth(1, display_size.x / 6.0f);
-            ImGui::SetColumnWidth(2, display_size.x / 8.0f);
-            ImGui::SetColumnWidth(3, display_size.x / 6.0f);
-            ImGui::SetColumnWidth(4, display_size.x / 6.0f);
-            ImGui::SetColumnWidth(5, display_size.x / 4.0f);
-            for (auto entity : Players) {
-                ImGui::Text("Entity: %lld", entity.Entity);
-                ImGui::NextColumn();
-                ImGui::Text("Name: %s", entity.Name.c_str());
-                ImGui::NextColumn();
-                ImGui::Text("TeamID: %d", entity.TeamID);
-                ImGui::NextColumn();
-                ImGui::Text("AimOffsets: %f", entity.AimOffsets.y);
-                ImGui::NextColumn();
-                ImGui::Text("Distance: %f", entity.Distance);
-                ImGui::NextColumn();
-                ImGui::Text("Location: x: %f  y: %f  z: %f", entity.Location.x, entity.Location.y, entity.Location.z);
-                ImGui::NextColumn();
-            }
-            ImGui::Columns(1);
-            ImGui::Text("end");
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("skeleton")) {
-            auto Players = Data::GetPlayers();
-            ImGui::Columns(2, nullptr, false);
-            for (auto entity : Players) {
-                auto skeletons = entity.Skeleton.ScreenBones;
-                auto Location = skeletons[EBoneIndex::forehead];
-                ImGui::Text("Name: %s", entity.Name.c_str());
-                ImGui::NextColumn();
-                ImGui::Text("Location: x: %f  y: %f  z: %f", Location.x, Location.y, Location.z);
-                ImGui::NextColumn();
-            }
-            ImGui::Columns(1);
-            ImGui::Text("end");
-
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("Project")) {
-            auto Project = Data::GetProjects();
-            ImGui::Columns(6, nullptr, false);
-            for (auto entity : Project) {
-                ImGui::Text("Entity: %lld", entity.Entity);
-                ImGui::NextColumn();
-                ImGui::Text("Name: %s", entity.Name.c_str());
-                ImGui::NextColumn();
-                ImGui::Text("Distance: %f", entity.Distance);
-                ImGui::NextColumn();
-                ImGui::Text("TimeTillExplosion: %f", entity.TimeTillExplosion);
-                ImGui::NextColumn();
-                ImGui::Text("Location: x: %f  y: %f  z: %f", entity.Location.x, entity.Location.y, entity.Location.z);
-                ImGui::NextColumn();
-                ImGui::Text("ScreenLocation: x: %f  y: %f  z: %f", entity.ScreenLocation.x, entity.ScreenLocation.y, entity.ScreenLocation.z);
-                ImGui::NextColumn();
-            }
-            ImGui::Columns(1);
-            ImGui::Text("end");
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("items")) {
-            auto items = Data::GetItems();
-            ImGui::Columns(5, nullptr, false);
-            for (auto entity : items) {
-                ImGui::Text("Entity: %lld", entity.Entity);
-                ImGui::NextColumn();
-                ImGui::Text("Name: %s", entity.Name.c_str());
-                ImGui::NextColumn();
-                ImGui::Text("Distance: %f", entity.Distance);
-                ImGui::NextColumn();
-                ImGui::Text("Location: x: %f  y: %f  z: %f", entity.Location.x, entity.Location.y, entity.Location.z);
-                ImGui::NextColumn();
-                ImGui::Text("ScreenLocation: x: %f  y: %f  z: %f", entity.ScreenLocation.x, entity.ScreenLocation.y, entity.ScreenLocation.z);
-                ImGui::NextColumn();
-            }
-            ImGui::Columns(1);
-            ImGui::Text("end");
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("ItemGroupInfo")) {
-            auto ItemGroupInfos = Data::GetItemGroups();
-            ImGui::Columns(2, nullptr, false);
-            for (auto entity : ItemGroupInfos) {
-                ImGui::Text("Entity: %lld", entity.Entity);
-                ImGui::NextColumn();
-                ImGui::Text("Items: %lld", entity.Items);
-                ImGui::NextColumn();
-            }
-            ImGui::Columns(1);
-            ImGui::Text("end");
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Radar")) {
-            ImGui::Text("Map name: %s", gameData.Map.MapName.c_str());
-            ImGui::Text("MapWidget: %lld", gameData.Map.MapWidget);
-            ImGui::Text("MapGrid: %lld", gameData.Map.MapGrid);
-            ImGui::Text("Slot: %lld", gameData.Map.Slot);
-            ImGui::Text("size: %f", gameData.Map.MapSize);
-            ImGui::Text("zoomSize: %f", gameData.Map.MapZoomValue);
-            ImGui::Text("ImageMapSize: %f", gameData.Radar.ImageMapSize);
-            ImGui::Text("ZoomFactor: %f", gameData.Map.MapZoomValue);
-            ImGui::Text("Visibility: %d", (int)gameData.Map.Visibility);
-            ImGui::Text("Position x: %f  y: %f", gameData.Map.Position.X, gameData.Map.Position.Y);
-            ImGui::Text("Layout Left: %f  Top: %f  Right: %f  Bottom: %f", gameData.Map.Layout.Left, gameData.Map.Layout.Top, gameData.Map.Layout.Right,
-                        gameData.Map.Layout.Bottom);
-            ImGui::Text("WorldOriginLocation x: %f  y: %f", gameData.Map.WorldOriginLocation.x, gameData.Map.WorldOriginLocation.y);
-            ImGui::Text("ImageMapSize: %f", gameData.Radar.ImageMapSize);
-            ImGui::Text("ZoomFactor: %f", gameData.Radar.ZoomFactor);
-            ImGui::Text("ScreenCenter x: %f  y: %f", gameData.Radar.ScreenCenter.X, gameData.Radar.ScreenCenter.Y);
-            // fov
             ImGui::Text("FOV: %f", gameData.FOV);
-            ImGui::Text("Location x: %f y: %f z: %f", gameData.Location.x, gameData.Location.y, gameData.Location.z);
-            ImGui::Text("Rotation x: %f y: %f z: %f", gameData.Rotation.x, gameData.Rotation.y, gameData.Rotation.z);
-            ImGui::Text("ScreenSize x: %f  y: %f", gameData.ScreenWidth, gameData.ScreenHeight);
-
+            ImGui::Text("width: %d  height:　%d", gameData.ScreenWidth, gameData.ScreenHeight);
+            ImGui::Text("Location: x: %f  y: %f  z: %f", gameData.Location.x, gameData.Location.y, gameData.Location.z);
+            ImGui::Text("Rotation: x: %f  y: %f  z: %f", gameData.Rotation.x, gameData.Rotation.y, gameData.Rotation.z);
             ImGui::EndTabItem();
         }
-
         if (ImGui::BeginTabItem("Myself")) {
+            ImGui::Text("PlayerPtr: %lld", gameData.Myself.PlayerPtr);
+            ImGui::Text("Mesh: %lld", gameData.Myself.Mesh);
+            ImGui::Text("AnimScript: %lld", gameData.Myself.AnimScript);
             ImGui::Text("Name: %s", gameData.Myself.Name.c_str());
             ImGui::Text("ClanName: %s", gameData.Myself.ClanName.c_str());
             ImGui::Text("TeamID: %d", gameData.Myself.TeamID);
-            ImGui::Text("Mesh: %lld", gameData.Myself.Mesh);
-            ImGui::Text("AnimScript: %lld", gameData.Myself.AnimScript);
-            ImGui::Text("PlayerPtr: %lld", gameData.Myself.PlayerPtr);
+            ImGui::Text("Location: x: %f  y: %f  z: %f", gameData.Myself.Location.x, gameData.Myself.Location.y, gameData.Myself.Location.z);
+            ImGui::Text("AtlaseLocation: x: %f  y: %f ", gameData.Myself.AtlaseLocation.x, gameData.Myself.AtlaseLocation.y);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Player")) {
+            ImVec2 from_size = ImGui::GetContentRegionAvail();
+            ImGui::Columns(6, nullptr, false);
+            ImGui::SetColumnWidth(0, from_size.x / 7);
+            ImGui::SetColumnWidth(1, from_size.x / 7);
+            ImGui::SetColumnWidth(2, from_size.x / 7);
+            ImGui::SetColumnWidth(3, from_size.x / 7);
+            ImGui::SetColumnWidth(4, from_size.x * 2 / 7);
 
+            ImGui::Text("PlayerPtr");
+            ImGui::NextColumn();
+            ImGui::Text("name");
+            ImGui::NextColumn();
+            ImGui::Text("TeamID");
+            ImGui::NextColumn();
+            ImGui::Text("Ttpe");
+            ImGui::NextColumn();
+            ImGui::Text("Distance");
+            ImGui::NextColumn();
+            ImGui::Text("Location");
+            ImGui::NextColumn();
+
+            auto Players = Data::GetPlayers();
+            auto PlayersPos = gameData.mapRadar.rader_players;
+            for (auto player : Players) {
+                ImGui::Text("%lld", player.Entity);
+                ImGui::NextColumn();
+                ImGui::Text("%s", player.Name.c_str());
+                ImGui::NextColumn();
+                ImGui::Text("%d", player.TeamID);
+                ImGui::NextColumn();
+                ImGui::Text("%d", (int)player.Type);
+                ImGui::NextColumn();
+                ImGui::Text("%f", player.Distance);
+                ImGui::NextColumn();
+                ImGui::Text("x: %f  y: %f", PlayersPos[player.Entity].x, PlayersPos[player.Entity].y);
+                ImGui::NextColumn();
+            }
+            ImGui::Columns(1);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Skeleton")) {
+            ImVec2 from_size = ImGui::GetContentRegionAvail();
+            ImGui::Columns(3, nullptr, false);
+
+            ImGui::Text("PlayerPtr");
+            ImGui::NextColumn();
+            ImGui::Text("name");
+            ImGui::NextColumn();
+            ImGui::Text("forehead");
+            ImGui::NextColumn();
+            auto Players = Data::GetPlayers();
+            for (auto player : Players) {
+                auto skeletons = player.Skeleton.ScreenBones;
+                ImGui::Text("%lld", player.Entity);
+                ImGui::NextColumn();
+                ImGui::Text("%s", player.Name.c_str());
+                ImGui::NextColumn();
+                ImGui::Text("x: %f  y: %f", skeletons[forehead].x, skeletons[forehead].y);
+                ImGui::NextColumn();
+            }
+            ImGui::Columns(1);
             ImGui::EndTabItem();
         }
     }
