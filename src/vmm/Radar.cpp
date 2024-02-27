@@ -49,31 +49,6 @@ bool Radar::GetMap() {
     }
 }
 
-// struct FTslWidgetState {
-//     unsigned char Pad[0x30];
-//     unsigned char WidgetClass[0x8];
-//     unsigned char pad_38[0x8];
-//     ULONG64 Widget;
-//     unsigned char pad_48[0x20];
-// };
-// bool Radar::GetMiniMap() {
-//     auto WidgetStateMap = Drive::ReadValue<TMap<FString, FTslWidgetState>>(gameData.MyHUD + gameData.Offset["WidgetStateMap"]);
-
-//     for (auto& Elem : WidgetStateMap.GetVector()) {
-//         auto& Key = Elem.Value.Key;
-//         auto& Value = Elem.Value.Value;
-//         if (Utils::ValidPtr(Value.Widget)) continue;
-//         ULONG ID = Decrypt::CIndex(Drive::ReadValue<ULONG>(Value.Widget + gameData.Offset["ObjID"]));
-//         std::string WidgetPtrName = GNames::GetName(ID);
-
-//         if (WidgetPtrName == "MinimapOriginalType_C") {
-//             gameData.Radar.MiniMapWidget = Value.Widget;
-//             return true;
-//         }
-//     }
-//     return false;
-// }
-
 bool Radar::GetMiniMap() {
     DWORD_PTR minMapPtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::WidgetStateMap);
     int minMapInt = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::WidgetStateMap + 0x8);

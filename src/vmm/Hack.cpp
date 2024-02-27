@@ -545,8 +545,6 @@ void UpdateSkeleton() {
         for (PlayerInfo& player : Cacheplayers) {
             if (player.Distance > 1000.0f || player.Distance < 0.0f) {
                 continue;
-            } else if (!std::isnan(player.Distance)) {  //|| std::isinf(player.Distance)
-                continue;
             } else if (player.TeamID < 0 || player.TeamID > 299) {
                 continue;
             } else if (player.Entity == 0 || player.PlayerState == 0 || player.MeshComponent == 0 || player.StaticMesh == 0) {
