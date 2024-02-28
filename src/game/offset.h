@@ -16,7 +16,7 @@ constexpr uint32_t LocalPlayer = 0xC0;           // 本地玩家信息偏移
 constexpr uint32_t PlayerController = 0x38;      // 玩家控制器偏移
 constexpr uint32_t Actor = 0x218;                // 游戏中角色偏移
 constexpr uint32_t GNames = 0xC5F63F0;           // 游戏中使用的名称地址
-constexpr uint32_t ObjID = 0x14;                 // 对象 ID 偏移
+constexpr uint32_t ObjID = 0x18;                 // 对象 ID 偏移
 constexpr uint32_t AcknowledgedPawn = 0x4B8;     // 本人组地址
 constexpr uint32_t PlayerCameraManager = 0x4E0;  // 相机地址
 constexpr uint32_t ViewTarget = 0x1010;          // 当前镜头
@@ -24,11 +24,11 @@ constexpr uint32_t MyHUD = 0x4D8;                // 地图组件
 
 // Decrypt
 constexpr uint32_t Decrypt = 0xA94E928;   // 用于解密操作偏移 Shield指针
-constexpr uint32_t ChunkSize = 0x3FB4;    // 内存块的大小 IDD
+constexpr uint32_t ChunkSize = 0x40C4;    // 内存块的大小 IDD
 constexpr uint32_t IsRor = 0x1;           // 是否使用 ROR 操作进行解密的标志
 constexpr uint32_t RorValue = 0x2;        // ROR 操作的值
-constexpr uint32_t XorKey1 = 0x98421F53;  // XOR 解密的密钥1 DecryptInternalIndexXorKey1
-constexpr uint32_t XorKey2 = 0x11874429;  // XOR 解密的密钥2 DecryptInternalIndexXorKey2
+constexpr uint32_t XorKey1 = 0xD97332BA;  // XOR 解密的密钥1 DecryptInternalIndexXorKey1
+constexpr uint32_t XorKey2 = 0xC9EB964F;  // XOR 解密的密钥2 DecryptInternalIndexXorKey2
 
 // Game
 constexpr uint32_t WorldToMap = 0x9C4;   // 世界坐标到地图坐标的转换参数 世界转小地图
