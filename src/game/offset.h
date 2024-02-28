@@ -76,6 +76,7 @@ constexpr uint32_t Slot = 0x38;
 constexpr uint32_t LayoutData = 0x40;
 constexpr uint32_t Alignment = 0x20;
 constexpr uint32_t BlockInputWidgetList = 0x578;
+constexpr uint32_t SelectMinimapSizeIndex = 0x05C0;
 
 // Mesh
 constexpr uint32_t VehicleRiderComponent = 0x2020;

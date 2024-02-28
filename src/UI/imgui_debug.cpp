@@ -59,6 +59,7 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
             ImGui::Text("atlas_radar: %lld", gameData.mapRadar.atlas_radar);
             ImGui::Text("small_map_radar: %lld", gameData.mapRadar.small_map_radar);
             ImGui::Text("is_ibility: %d", (int)gameData.mapRadar.is_ibility);
+            ImGui::Text("is_min_map_ibility: %d", (int)gameData.mapRadar.is_min_map_ibility);
             ImGui::Text("map_address: %lld", gameData.mapRadar.map_address);
             ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
             ImGui::Text("map_id: %d", gameData.mapRadar.map_id);

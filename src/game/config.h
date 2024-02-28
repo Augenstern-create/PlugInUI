@@ -56,6 +56,8 @@ struct MapRadar {
     DWORD_PTR map_address;      // 地图地址
     std::string map_name;       // 地图名字
     bool is_ibility;            // 可见性
+    bool is_min_map_ibility;    // 小地图可见性
+    int min_map_size_id;        // 最小地图大小id
     int map_id;                 // 地图id
     float map_zoom_value;       // 地图缩放系数
     float map_size;             // 地图大小

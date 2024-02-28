@@ -10,6 +10,19 @@ std::string GNames::GetNameByID(int ID) {
     if (names == "") names = "fail";
     return names;
 }
+std::string GNames::GetNameByID(int id, int Handle) {
+    DWORD_PTR entity;
+    VmmCore::ScatterReadEx(Handle, gameData.GNames + ((int(id / Offset::ChunkSize)) * 8), (DWORD_PTR*)&entity);
+    VmmCore::ScatterExecuteReadEx(Handle);
+    DWORD_PTR entity2;
+    VmmCore::ScatterReadEx(Handle, entity + ((int(id % Offset::ChunkSize)) * 8), (DWORD_PTR*)&entity2);
+    VmmCore::ScatterExecuteReadEx(Handle);
+    FText Texts;
+    VmmCore::ScatterReadEx(Handle, entity2 + +0x10, (FText*)&Texts);
+    VmmCore::ScatterExecuteReadEx(Handle);
+    std::string name = Texts.buffer;
+    return name;
+}
 
 DWORD_PTR GNames::GetGNamesPtr() {
     DWORD_PTR gnames = 0;

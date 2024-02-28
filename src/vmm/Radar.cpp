@@ -90,7 +90,13 @@ bool Radar::GetMapGrid() {
 bool Radar::GetVisibility() {
     auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.mapRadar.atlas_radar + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
     gameData.mapRadar.is_ibility = Visibility;
-    return gameData.mapRadar.is_ibility;
+    return Visibility;
+}
+
+bool Radar::GetMinMapVisibility() {
+    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.mapRadar.small_map_radar + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
+    gameData.mapRadar.is_min_map_ibility = Visibility;
+    return Visibility;
 }
 
 float Radar::GetZoomFactor() {
@@ -116,31 +122,13 @@ void Radar::Update() {
     while (true) {
         if (gameData.Scene != Scene::Gameing) continue;
 
-        if (gameData.mapRadar.map_size <= 0) {
-            if (!Radar::GetMap()) {
-                Sleep(10);
-                continue;
-            }
-        }
+        auto hScatter = VmmCore::ScatterInit();
 
-        if (Utils::ValidPtr(gameData.mapRadar.small_map_radar)) {
-            if (!Radar::GetMiniMap()) {
-            }
-        }
-        if (Utils::ValidPtr(gameData.mapRadar.map_grid)) {
-            if (!Radar::GetMapGrid()) {
-            }
-        }
-        if (!gameData.mapRadar.is_ibility) {
-            if (!Radar::GetVisibility()) {
-            }
-        }
-
-        Radar::GetZoomFactor();
-        Radar::GetPosition();
-
-        const float MapSizeFactored = gameData.mapRadar.map_size / gameData.mapRadar.map_zoom_value;
-        const Vector3 WorldCenterLocation = {gameData.mapRadar.map_size * (1.0f + gameData.mapRadar.position.X),
-                                             gameData.mapRadar.map_size * (1.0f + gameData.mapRadar.position.Y), 0.0f};
+        int SelectMinimapSizeIndex;
+        ESlateVisibility MiniRadarVisibility;
+        VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::SelectMinimapSizeIndex, (int*)&SelectMinimapSizeIndex);
+        VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::Visibility, (ESlateVisibility*)&MiniRadarVisibility);
+        VmmCore::ScatterExecuteReadEx(hScatter);
+        gameData.mapRadar.min_map_size_id = SelectMinimapSizeIndex;
     }
 }

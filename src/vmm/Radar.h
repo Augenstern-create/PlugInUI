@@ -10,6 +10,7 @@ class Radar {
     static bool GetMapGrid();
     static bool GetMiniMap();
     static bool GetVisibility();
+    static bool GetMinMapVisibility();
     static float GetZoomFactor();
     static FVector2D GetPosition();
     static Vector3 PlayerToRadarPosition(Vector3 position);

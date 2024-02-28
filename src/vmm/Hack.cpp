@@ -240,6 +240,28 @@ void UpdateAddress() {
                 }
                 gameData.mapRadar.world_location = Vector3(VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap),
                                                            VmmCore::ReadValue<int>(gameData.UWorld + Offset::WorldToMap + 0x4), 0.0f);
+                {
+                    // radar
+                    if (gameData.mapRadar.map_size <= 0) {
+                        if (!Radar::GetMap()) {
+                            Sleep(10);
+                            continue;
+                        }
+                    }
+                    if (Utils::ValidPtr(gameData.mapRadar.small_map_radar)) {
+                        if (!Radar::GetMiniMap()) {
+                        }
+                    }
+                    if (Utils::ValidPtr(gameData.mapRadar.map_grid)) {
+                        if (!Radar::GetMapGrid()) {
+                        }
+                    }
+
+                    Radar::GetVisibility();
+                    Radar::GetMinMapVisibility();
+                    Radar::GetZoomFactor();
+                    Radar::GetPosition();
+                }
             }
         }
     }
