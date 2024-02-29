@@ -122,13 +122,13 @@ void Radar::Update() {
     while (true) {
         if (gameData.Scene != Scene::Gameing) continue;
 
-        auto hScatter = VmmCore::ScatterInit();
+        // auto hScatter = VmmCore::ScatterInit();
 
-        int SelectMinimapSizeIndex;
-        ESlateVisibility MiniRadarVisibility;
-        VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::SelectMinimapSizeIndex, (int*)&SelectMinimapSizeIndex);
-        VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::Visibility, (ESlateVisibility*)&MiniRadarVisibility);
-        VmmCore::ScatterExecuteReadEx(hScatter);
-        gameData.mapRadar.min_map_size_id = SelectMinimapSizeIndex;
+        // int SelectMinimapSizeIndex;
+        // ESlateVisibility MiniRadarVisibility;
+        // VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::SelectMinimapSizeIndex, (int*)&SelectMinimapSizeIndex);
+        // VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::Visibility, (ESlateVisibility*)&MiniRadarVisibility);
+        // VmmCore::ScatterExecuteReadEx(hScatter);
+        // gameData.mapRadar.min_map_size_id = SelectMinimapSizeIndex;
     }
 }

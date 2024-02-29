@@ -9,14 +9,6 @@ DWORD Decrypt::CIndex(DWORD value) {
     return rotated ^ (rotated << 0x10) ^ Offset::XorKey2;
 }
 
-// DWORD Decrypt::CIndex(DWORD value) {
-//     DWORD xorResult = value ^ gameData.Offset["DecryptNameIndexXorKey1"];
-//     DWORD rotated = gameData.Offset["DecryptNameIndexRor"] ? _rotr(xorResult, gameData.Offset["DecryptNameIndexRval"])
-//                                                            : _rotl(xorResult, gameData.Offset["DecryptNameIndexRval"]);
-
-//     return rotated ^ (rotated << gameData.Offset["DecryptNameIndexSval"]) ^ gameData.Offset["DecryptNameIndexXorKey2"];
-// }
-
 void Decrypt::DestroyXe() { DecFunction = reinterpret_cast<DWORD_PTR (*)(DWORD_PTR key, DWORD_PTR base)>(0); }
 
 DWORD_PTR Decrypt::Xe(DWORD_PTR addr) {

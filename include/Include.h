@@ -32,3 +32,13 @@
 #define LOGE LSO_LOGE
 #define LOGI LSO_LOGI
 #define LOGD LSO_LOGD
+
+#define FONT_PATH "\\DouyinSansBold.otf"
+#define IMAGE_PATH "\\photograph"
+#define WEAPON_IMAGE_PATH "\\photograph\\Weapon"
+
+#ifdef _DEBUG
+#define PATH_ "Debug"
+#else
+#define PATH_ "Release"
+#endif

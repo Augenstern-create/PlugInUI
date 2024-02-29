@@ -202,7 +202,7 @@ bool JudgeOneself() {
 void UpdateAddress() {
     while (true) {
         if (gameData.PID > 0) {
-            DWORD_PTR GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::GNames));
+            DWORD_PTR GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::GNames));// 140697243680768 | 206938192 | 177578792
             gameData.GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(GNames));
             gameData.UWorld = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::UWorld));
             gameData.GameState = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + Offset::GameState));
