@@ -236,11 +236,16 @@ void ImGui::ShowSkeletonWindow(bool* p_open, ImVec2 display_size) {
 
             // 绘制大小地图雷达
             {
-                if (gameData.mapRadar.is_ibility) {
-                    if (Config.is_drawing_atlas_radar) {
-                    }
-                } else {
-                    if (Config.is_drawing_small_map_radar) {
+                if (gameData.mapRadar.max_map.is_ibility && Config.is_drawing_atlas_radar) {
+                    ImVec2 form_size = {display_size.x, display_size.y};
+                    auto world_location = gameData.mapRadar.world_location;
+                    auto map_size = gameData.mapRadar.map_size;
+
+                    for (auto Player : Players) {
+                        if (Player.TeamID == gameData.Myself.TeamID) continue;
+                        std::string data = std::to_string((int)Player.TeamID);
+                        ImVec2 location = {0.0f, 0.0f};
+                        ImGui::PlayerDisplay(data.c_str(), Config.max_radar_size, Player.AimOffsets, location, Config.max_radar_color)
                     }
                 }
             }

@@ -35,6 +35,7 @@ struct SkeletonConfig {
     float font_zoom_size = 1.0f;            // 缩放
     float time_per_frame = 0.0f;            // 每帧耗时
     float skeleton_show_distance = 500.0f;  // 骨骼显示距离
+    float max_radar_size = 6.0f;            // 大地图雷达大小
 
     ImVec2 windows_form_size = {0.0f, 0.0f};  // 窗口大小
 
@@ -47,24 +48,34 @@ struct SkeletonConfig {
     ImColor groggy_hp_color = {1.0f, 0.0f, 0.0f, 1.00f};     // 倒地血量颜色
     ImColor skeleton_color = {1.0f, 0.0f, 0.0f, 1.00f};      // 骨骼颜色
     ImColor box_color = {1.0f, 0.0f, 0.0f, 1.00f};           // 方框颜色
+    ImColor max_radar_color = {1.0f, 0.0f, 0.0f, 1.00f};     // 大地图雷达颜色
 };
 
 struct MapRadar {
-    DWORD_PTR map_grid;         // 大地图组件
-    DWORD_PTR atlas_radar;      // 大地图雷达
-    DWORD_PTR small_map_radar;  // 小地图雷达
-    DWORD_PTR map_address;      // 地图地址
-    std::string map_name;       // 地图名字
-    bool is_ibility;            // 可见性
-    bool is_min_map_ibility;    // 小地图可见性
-    int min_map_size_id;        // 最小地图大小id
-    int map_id;                 // 地图id
-    float map_zoom_value;       // 地图缩放系数
-    float map_size;             // 地图大小
-    float radar_size;           // 雷达大小
-    Vector3 world_location;     // 世界地址
-    FVector2D position;         // 位置
-    FMargin declare;            // 布局
+    std::string map_name;    // 地图名字
+    int map_id;              // 地图id
+    float map_size;          // 地图大小
+    float radar_size;        // 雷达大小
+    Vector3 world_location;  // 世界地址
+
+    struct MaxMap {
+        DWORD_PTR map_grid;     // 大地图组件
+        DWORD_PTR map_radar;    // 大地图雷达
+        DWORD_PTR map_address;  // 地图地址
+        FMargin declare;        // 布局
+        FVector2D position;     // 位置
+        bool is_ibility;        // 可见性
+        float map_zoom_value;   // 地图缩放系数
+    } max_map;
+
+    struct MinMap {
+        DWORD_PTR map_radar;    // 小地图雷达
+        DWORD_PTR map_address;  // 地图地址
+        FMargin declare;        // 布局
+        FVector2D position;     // 位置
+        bool is_ibility;        // 可见性
+        float map_zoom_value;   // 地图缩放系数
+    } min_map;
 
     std::unordered_map<DWORD_PTR, Vector3> rader_players;  // 雷达坐标/比值
 };

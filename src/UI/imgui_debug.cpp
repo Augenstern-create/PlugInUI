@@ -55,20 +55,33 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("MapRadar")) {
-            ImGui::Text("map_grid: %lld", gameData.mapRadar.map_grid);
-            ImGui::Text("atlas_radar: %lld", gameData.mapRadar.atlas_radar);
-            ImGui::Text("small_map_radar: %lld", gameData.mapRadar.small_map_radar);
-            ImGui::Text("is_ibility: %d", (int)gameData.mapRadar.is_ibility);
-            ImGui::Text("is_min_map_ibility: %d", (int)gameData.mapRadar.is_min_map_ibility);
-            ImGui::Text("map_address: %lld", gameData.mapRadar.map_address);
-            ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
             ImGui::Text("map_id: %d", gameData.mapRadar.map_id);
-            ImGui::Text("map_zoom_value: %f", gameData.mapRadar.map_zoom_value);
+            ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
             ImGui::Text("map_size: %f", gameData.mapRadar.map_size);
             ImGui::Text("radar_size: %f", gameData.mapRadar.radar_size);
-            ImGui::Text("position: x: %f  y: %f  ", gameData.mapRadar.position.X, gameData.mapRadar.position.Y);
-            ImGui::Text("world_location: x: %f  y: %f  z: %f", gameData.mapRadar.world_location.x, gameData.mapRadar.world_location.y,
-                        gameData.mapRadar.world_location.z);
+            ImGui::Text("world_location: x: %f  y: %f", gameData.mapRadar.world_location.x, gameData.mapRadar.world_location.y);
+            {
+                ImGui::NextColumn();
+                auto map = gameData.mapRadar.max_map;
+                ImGui::Text("max_map_grid: %lld", map.map_grid);
+                ImGui::Text("max_map_radar: %lld", map.map_radar);
+                ImGui::Text("max_map_address: %lld", map.map_address);
+                ImGui::Text("max_is_ibility: %d", (int)map.is_ibility);
+                ImGui::Text("max_map_zoom_value: %f", map.map_zoom_value);
+                ImGui::Text("max_position: x: %f  y: %f  ", map.position.X, map.position.Y);
+                ImGui::Text("max_declare: Left: %f  Top: %f  Right: %f  Bottom: %f", map.declare.Left, map.declare.Top, map.declare.Right, map.declare.Bottom);
+            }
+            {
+                ImGui::NextColumn();
+                auto map = gameData.mapRadar.min_map;
+                ImGui::Text("min_map_radar: %lld", map.map_radar);
+                ImGui::Text("min_map_address: %lld", map.map_address);
+                ImGui::Text("min_is_ibility: %d", (int)map.is_ibility);
+                ImGui::Text("min_map_zoom_value: %f", map.map_zoom_value);
+                ImGui::Text("min_position: x: %f  y: %f  ", map.position.X, map.position.Y);
+                ImGui::Text("min_declare: Left: %f  Top: %f  Right: %f  Bottom: %f", map.declare.Left, map.declare.Top, map.declare.Right, map.declare.Bottom);
+            }
+
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Gameing")) {

@@ -202,7 +202,7 @@ bool JudgeOneself() {
 void UpdateAddress() {
     while (true) {
         if (gameData.PID > 0) {
-            DWORD_PTR GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::GNames));// 140697243680768 | 206938192 | 177578792
+            DWORD_PTR GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::GNames));  // 140697243680768 | 206938192 | 177578792
             gameData.GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(GNames));
             gameData.UWorld = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::UWorld));
             gameData.GameState = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + Offset::GameState));
@@ -248,19 +248,14 @@ void UpdateAddress() {
                             continue;
                         }
                     }
-                    if (Utils::ValidPtr(gameData.mapRadar.small_map_radar)) {
+                    if (Utils::ValidPtr(gameData.mapRadar.min_map.map_radar)) {
                         if (!Radar::GetMiniMap()) {
                         }
                     }
-                    if (Utils::ValidPtr(gameData.mapRadar.map_grid)) {
+                    if (Utils::ValidPtr(gameData.mapRadar.max_map.map_grid)) {
                         if (!Radar::GetMapGrid()) {
                         }
                     }
-
-                    Radar::GetVisibility();
-                    Radar::GetMinMapVisibility();
-                    Radar::GetZoomFactor();
-                    Radar::GetPosition();
                 }
             }
         }

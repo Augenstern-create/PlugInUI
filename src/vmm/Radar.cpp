@@ -57,7 +57,7 @@ bool Radar::GetMiniMap() {
         int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(minMapData + Offset::ObjID));
         std::string WidgetName = GNames::GetNameByID(ID);
         if (WidgetName == "MinimapOriginalType_C") {
-            gameData.mapRadar.small_map_radar = minMapData;
+            gameData.mapRadar.min_map.map_radar = minMapData;
             return true;
         }
     }
@@ -73,13 +73,13 @@ bool Radar::GetMapGrid() {
         int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(Widget + Offset::ObjID));
         std::string WidgetName = GNames::GetNameByID(ID);
         if (WidgetName == "NewWorldMapWidget_BP_C") {
-            gameData.mapRadar.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid + 0x30);
-            gameData.mapRadar.atlas_radar = Widget;
+            gameData.mapRadar.max_map.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid + 0x30);
+            gameData.mapRadar.max_map.map_radar = Widget;
             return true;
         }
         if (WidgetName == "UI_TrainingWorldMapWidget_C") {
-            gameData.mapRadar.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid);
-            gameData.mapRadar.atlas_radar = Widget;
+            gameData.mapRadar.max_map.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid);
+            gameData.mapRadar.max_map.map_radar = Widget;
             return true;
         }
     }
@@ -87,48 +87,56 @@ bool Radar::GetMapGrid() {
     return false;
 }
 
-bool Radar::GetVisibility() {
-    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.mapRadar.atlas_radar + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
-    gameData.mapRadar.is_ibility = Visibility;
+bool Radar::GetVisibility(DWORD_PTR map_radar) {
+    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(map_radar + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
     return Visibility;
 }
 
-bool Radar::GetMinMapVisibility() {
-    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(gameData.mapRadar.small_map_radar + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
-    gameData.mapRadar.is_min_map_ibility = Visibility;
-    return Visibility;
-}
-
-float Radar::GetZoomFactor() {
-    gameData.mapRadar.map_address = VmmCore::ReadValue<DWORD_PTR>(gameData.mapRadar.map_grid + Offset::Slot);
-    if (Utils::ValidPtr(gameData.mapRadar.map_address)) return 0.0f;
-    gameData.mapRadar.declare = VmmCore::ReadValue<FMargin>(gameData.mapRadar.map_address + Offset::LayoutData + 0x0);
-    const FVector2D CurrentSize = {gameData.mapRadar.declare.Right, gameData.mapRadar.declare.Bottom};
-    auto factor = CurrentSize.X / DefaultSize.X;
-    gameData.mapRadar.map_zoom_value = factor;
+float Radar::GetZoomFactor(FVector2D default_size, DWORD_PTR map_grid, DWORD_PTR* map_address, FMargin* declare) {
+    *map_address = VmmCore::ReadValue<DWORD_PTR>(map_grid + Offset::Slot);
+    if (Utils::ValidPtr(*map_address)) return 0.0f;
+    *declare = VmmCore::ReadValue<FMargin>(*map_address + Offset::LayoutData + 0x0);
+    const FVector2D CurrentSize = {declare->Right, declare->Bottom};
+    auto factor = CurrentSize.X / default_size.X;
     return factor;
-};
+}
 
-FVector2D Radar::GetPosition() {
-    auto Alignment = VmmCore::ReadValue<FVector2D>(gameData.mapRadar.map_address + Offset::LayoutData + 0x0 + Offset::Alignment);
-    const FVector2D CurrentPos = {gameData.mapRadar.declare.Right * (Alignment.X - 0.5f) - gameData.mapRadar.declare.Left,
-                                  gameData.mapRadar.declare.Bottom * (Alignment.Y - 0.5f) - gameData.mapRadar.declare.Top};
-    gameData.mapRadar.position = {CurrentPos.X / DefaultSize.X / gameData.mapRadar.map_zoom_value * 2.0f,
-                                  CurrentPos.Y / DefaultSize.Y / gameData.mapRadar.map_zoom_value * 2.0f};
-    return gameData.mapRadar.position;
+FVector2D Radar::GetPosition(DWORD_PTR map_address, FMargin declare, FVector2D default_size, float zoom_value) {
+    auto Alignment = VmmCore::ReadValue<FVector2D>(map_address + Offset::LayoutData + 0x0 + Offset::Alignment);
+    const FVector2D CurrentPos = {declare.Right * (Alignment.X - 0.5f) - declare.Left, declare.Bottom * (Alignment.Y - 0.5f) - declare.Top};
+    const FVector2D position = {CurrentPos.X / default_size.X / zoom_value * 2.0f, CurrentPos.Y / default_size.Y / zoom_value * 2.0f};
+    return position;
 }
 
 void Radar::Update() {
     while (true) {
         if (gameData.Scene != Scene::Gameing) continue;
+        FVector2D DefaultSize = {1080.0f, 1080.0f};
+        // 大地图雷达
+        {
+            bool is_ibility;
+            float map_zoom_value;
+            DWORD_PTR map_address;
+            FMargin declare;
+            FVector2D position;
+            is_ibility = Radar::GetVisibility(gameData.mapRadar.max_map.map_radar);
+            map_zoom_value = Radar::GetZoomFactor(DefaultSize, gameData.mapRadar.max_map.map_grid, &map_address, &declare);
+            position = Radar::GetPosition(map_address, declare, DefaultSize, map_zoom_value);
 
-        // auto hScatter = VmmCore::ScatterInit();
+            auto player_location = gameData.Myself.Location;
+            auto world_location = gameData.mapRadar.world_location;
+            auto map_size = gameData.mapRadar.map_size;
+            auto zoom_value = map_size / map_zoom_value;
 
-        // int SelectMinimapSizeIndex;
-        // ESlateVisibility MiniRadarVisibility;
-        // VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::SelectMinimapSizeIndex, (int*)&SelectMinimapSizeIndex);
-        // VmmCore::ScatterReadEx(hScatter, gameData.mapRadar.small_map_radar + Offset::Visibility, (ESlateVisibility*)&MiniRadarVisibility);
-        // VmmCore::ScatterExecuteReadEx(hScatter);
-        // gameData.mapRadar.min_map_size_id = SelectMinimapSizeIndex;
+            Vector3 player_to_world = {player_location.x + world_location.x, player_location.y + world_location.y, player_location.z};
+            Vector3 world_center = {map_size * (1 + position.x), map_size * (1 + position.y), 0.0f};
+            auto radar_location = player_to_world - world_center;
+
+            gameData.mapRadar.max_map.map_address = map_address;
+            gameData.mapRadar.max_map.is_ibility = is_ibility;
+            gameData.mapRadar.max_map.map_zoom_value = map_zoom_value;
+            gameData.mapRadar.max_map.declare = declare;
+            gameData.mapRadar.max_map.position = position;
+        }
     }
 }

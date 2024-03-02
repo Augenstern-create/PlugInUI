@@ -461,17 +461,25 @@ inline void Clears() {
         gameData.Myself.Location = {0, 0, 0};
     }
     if (gameData.mapRadar.map_name != "") {
-        gameData.mapRadar.map_grid = 0;
-        gameData.mapRadar.atlas_radar = 0;
-        gameData.mapRadar.small_map_radar = 0;
-        gameData.mapRadar.map_address = 0;
-        gameData.mapRadar.is_ibility = false;
-        gameData.mapRadar.map_id = 0;
-        gameData.mapRadar.map_zoom_value = 0;
         gameData.mapRadar.map_size = 0;
         gameData.mapRadar.radar_size = 0;
-        gameData.mapRadar.position = {0.0f, 0.0f};
-        gameData.mapRadar.declare = {0.0f, 0.0f, 0.0f, 0.0f};
+        gameData.mapRadar.world_location = {0.0f, 0.0f, 0.0f};
+
+        gameData.mapRadar.max_map.map_grid = 0;
+        gameData.mapRadar.max_map.map_radar = 0;
+        gameData.mapRadar.max_map.map_address = 0;
+        gameData.mapRadar.max_map.is_ibility = false;
+        gameData.mapRadar.max_map.map_zoom_value = 0;
+        gameData.mapRadar.max_map.position = {0.0f, 0.0f};
+        gameData.mapRadar.max_map.declare = {0.0f, 0.0f, 0.0f, 0.0f};
+
+        gameData.mapRadar.min_map.map_radar = 0;
+        gameData.mapRadar.min_map.map_address = 0;
+        gameData.mapRadar.min_map.is_ibility = false;
+        gameData.mapRadar.min_map.map_zoom_value = 0;
+        gameData.mapRadar.min_map.position = {0.0f, 0.0f};
+        gameData.mapRadar.min_map.declare = {0.0f, 0.0f, 0.0f, 0.0f};
+
         gameData.mapRadar.rader_players.clear();
     }
 
