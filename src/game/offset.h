@@ -96,8 +96,12 @@ constexpr uint32_t WeaponTrajectoryData = 0x10C0;
 constexpr uint32_t TrajectoryConfig = 0x100;
 constexpr uint32_t FloatCurves = 0x30;
 constexpr uint32_t Keys = 0x60;
-constexpr uint32_t ComponentVelocity = 0x2F0;  // 速度组件
-constexpr uint32_t Veloctity = 0x3D0;          // 速度
+constexpr uint32_t ComponentVelocity = 0x2F0;    // 速度组件
+constexpr uint32_t Veloctity = 0x3D0;            // 速度
+constexpr uint32_t TrajectoryGravityZ = 0x102C;  // 重力轨迹
+constexpr uint32_t FiringAttachPoint = 0x860;    // 发射链接点
+constexpr uint32_t ScopingAttachPoint = 0xC68;   // 范围界定
+constexpr uint32_t Mesh3P = 0x7B0;               // 范围界定
 
 constexpr uint32_t IsABot = 0x44c;
 constexpr uint32_t IsSpectator = 0x410;

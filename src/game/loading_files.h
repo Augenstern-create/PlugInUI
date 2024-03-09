@@ -7,6 +7,8 @@
 #include "iconv.h"
 #include "utils/conversion.h"
 #include "Data.h"
+#include <sstream>
+#include <iomanip>
 
 std::string GB18030ToUTF8(std::string txt) {
     // const char *from_charset = "GB18030";
@@ -131,28 +133,43 @@ std::string CodeConversion(std::string path, std::string code) {
     return utf8_content;
 }
 
-uint32_t hexStringToUint32(const std::string &hexString) {
+bool hexStringToUint32(const std::string &hexString, uint32_t *value) {
     std::string cleanString = hexString.substr(0, 2) == "0x" ? hexString.substr(2) : hexString;
     for (char c : cleanString) {
         if (!std::isxdigit(c)) {
-            throw std::invalid_argument("Invalid hex string");
+            return false;
         }
     }
     unsigned long offsetLong;
     try {
         offsetLong = std::stoul(cleanString, nullptr, 16);
     } catch (const std::invalid_argument &e) {
-        throw std::invalid_argument("Invalid hex string: " + std::string(e.what()));
+        return false;
     } catch (const std::out_of_range &e) {
-        throw std::out_of_range("Hex value out of range for uint32_t: " + std::string(e.what()));
+        return false;
     }
 
     const unsigned long maxUint32 = static_cast<unsigned long>(0xFFFFFFFF);  // uint32_t 的最大值
     if (offsetLong > maxUint32) {
-        throw std::overflow_error("Value out of range for uint32_t");
+        return false;
     }
     uint32_t offset = static_cast<uint32_t>(offsetLong);
-    return offset;
+    *value = offset;
+    return true;
+}
+bool stringToHexUint32(const std::string &str, uint32_t *value) {
+    size_t start = (str.size() >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) ? 2 : 0;
+    *value = 0;
+    for (size_t i = start; i < str.size(); ++i) {
+        char c = std::tolower(str[i]);
+        if (c == '\r') {
+            break;
+        }
+        if (!std::isxdigit(c)) {
+            return false;
+        }
+        *value = (*value << 4) + std::stoi(std::string(1, c), nullptr, 16);
+    }
 }
 
 bool InitLoadingFile() {
@@ -176,8 +193,11 @@ bool InitLoadingFile() {
                 std::string field_name = line.substr(8, comma_pos - 8);
                 if (isString(field_name, "")) continue;
                 size_t last_comma_pos = line.find_last_of(',');
-                std::string value = "0x" + line.substr(last_comma_pos + 1);
-                constants.push_back(std::make_pair(field_name, hexStringToUint32(value)));
+                std::string strValue = "0x" + line.substr(last_comma_pos + 1);
+                uint32_t offset = 0x0;
+                if (stringToHexUint32(strValue, &offset)) {
+                    constants.push_back(std::make_pair(field_name, offset));
+                }
             }
         }
     }
@@ -190,6 +210,9 @@ bool InitLoadingFile() {
         } else {
             gameData.Offset[constant.first] = constant.second;
         }
+    }
+    for (auto it : gameData.Offset) {  // 使用it作为迭代器的名字
+        std::cout << "Name: " << it.first << " value: 0x" << std::hex << it.second << std::endl;
     }
     return true;
 }
