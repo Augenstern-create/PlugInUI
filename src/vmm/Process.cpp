@@ -21,7 +21,7 @@ void UpdateGameScene() {
     if (gameData.PID == 0) {
         gameData.Scene = Scene::FindProcess;
     } else {
-        gameData.mapRadar.map_id = Decrypt::CIndex(VmmCore::ReadValue<int>(gameData.UWorld + Offset::ObjID));
+        gameData.mapRadar.map_id = Decrypt::CIndex(VmmCore::ReadValue<int>(gameData.UWorld + gameData.Offset["ObjID"]));
         gameData.mapRadar.map_name = GNames::GetNameByID(gameData.mapRadar.map_id);
         if (IsLobby(gameData.mapRadar.map_name)) {
             gameData.Scene = Scene::Lobby;

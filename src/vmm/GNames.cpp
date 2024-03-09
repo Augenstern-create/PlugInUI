@@ -2,8 +2,8 @@
 #include "game/Entitys.h"
 
 std::string GNames::GetNameByID(int ID) {
-    UINT64 fNamePtr = VmmCore::ReadValue<UINT64>(gameData.GNames + ((int(ID / Offset::ChunkSize)) * 8));
-    UINT64 fName = VmmCore::ReadValue<UINT64>(fNamePtr + ((int(ID % Offset::ChunkSize)) * 8));
+    UINT64 fNamePtr = VmmCore::ReadValue<UINT64>(gameData.GNames + ((int(ID / gameData.Offset["IDD"])) * 8));
+    UINT64 fName = VmmCore::ReadValue<UINT64>(fNamePtr + ((int(ID % gameData.Offset["IDD"])) * 8));
     char names_c[258];
     VmmCore::ReadByte(fName + 0x10, names_c, sizeof(names_c));
     std::string names = std::string(names_c);
@@ -12,10 +12,10 @@ std::string GNames::GetNameByID(int ID) {
 }
 std::string GNames::GetNameByID(int id, int Handle) {
     DWORD_PTR entity;
-    VmmCore::ScatterReadEx(Handle, gameData.GNames + ((int(id / Offset::ChunkSize)) * 8), (DWORD_PTR*)&entity);
+    VmmCore::ScatterReadEx(Handle, gameData.GNames + ((int(id / gameData.Offset["IDD"])) * 8), (DWORD_PTR*)&entity);
     VmmCore::ScatterExecuteReadEx(Handle);
     DWORD_PTR entity2;
-    VmmCore::ScatterReadEx(Handle, entity + ((int(id % Offset::ChunkSize)) * 8), (DWORD_PTR*)&entity2);
+    VmmCore::ScatterReadEx(Handle, entity + ((int(id % gameData.Offset["IDD"])) * 8), (DWORD_PTR*)&entity2);
     VmmCore::ScatterExecuteReadEx(Handle);
     FText Texts;
     VmmCore::ScatterReadEx(Handle, entity2 + +0x10, (FText*)&Texts);
@@ -26,7 +26,7 @@ std::string GNames::GetNameByID(int id, int Handle) {
 
 DWORD_PTR GNames::GetGNamesPtr() {
     DWORD_PTR gnames = 0;
-    DWORD_PTR tmp = VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + Offset::GNames);
+    DWORD_PTR tmp = VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + gameData.Offset["GNames"]);
     DWORD64 v11 = Decrypt::Xe(tmp);
     DWORD64 v21 = VmmCore::ReadValue<DWORD_PTR>(v11);
     DWORD64 v22 = Decrypt::Xe(v21);
@@ -41,10 +41,10 @@ DWORD_PTR GNames::GetGNamesPtr() {
 
 EntityInfo GNames::GetName(int id, int Handle) {
     DWORD_PTR entity;
-    VmmCore::ScatterReadEx(Handle, gameData.GNames + ((int(id / Offset::ChunkSize)) * 8), (DWORD_PTR*)&entity);
+    VmmCore::ScatterReadEx(Handle, gameData.GNames + ((int(id / gameData.Offset["IDD"])) * 8), (DWORD_PTR*)&entity);
     VmmCore::ScatterExecuteReadEx(Handle);
     DWORD_PTR entity2;
-    VmmCore::ScatterReadEx(Handle, entity + ((int(id % Offset::ChunkSize)) * 8), (DWORD_PTR*)&entity2);
+    VmmCore::ScatterReadEx(Handle, entity + ((int(id % gameData.Offset["IDD"])) * 8), (DWORD_PTR*)&entity2);
     VmmCore::ScatterExecuteReadEx(Handle);
     FText Texts;
     VmmCore::ScatterReadEx(Handle, entity2 + +0x10, (FText*)&Texts);
@@ -63,7 +63,7 @@ void GNames::GetGNameLists() {
     int begin = 0;
 
     for (int i = begin; i < 900000; ++i) {
-        auto entity = gameData.GNames + ((int(i / Offset::ChunkSize)) * 8);
+        auto entity = gameData.GNames + ((int(i / gameData.Offset["IDD"])) * 8);
         gNameAddresses.push_back(entity);
     }
 
@@ -73,7 +73,7 @@ void GNames::GetGNameLists() {
     std::vector<DWORD_PTR> gNameEntryOffsets;
 
     for (int i = 0; i < gNameOffsets.size(); ++i) {
-        auto entity = gNameOffsets.at(i) + ((int(i % Offset::ChunkSize)) * 8);
+        auto entity = gNameOffsets.at(i) + ((int(i % gameData.Offset["IDD"])) * 8);
         gNameEntryAddresses.push_back(entity);
     }
 

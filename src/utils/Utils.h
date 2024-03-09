@@ -18,6 +18,14 @@
 // 浅蓝色
 #define COLOR_LBLUE "\033[1;34m"
 
+#define HASH_CASE(Hash, ...) \
+    case Hash:               \
+        return __VA_ARGS__
+
+#define HASH_DEFAULT(...) \
+    default:              \
+        return __VA_ARGS__
+
 template <typename... T>
 static constexpr auto make_array(T&&... t) -> std::array<std::decay_t<std::common_type_t<T...>>, sizeof...(T)> {
     return {{std::forward<T>(t)...}};

@@ -14,6 +14,7 @@
 #include "srcUtils.h"
 #include "imgui.h"
 #include "config.h"
+#include "offset.h"
 
 struct PlayerInfo {
     EntityType Type;                 // 实体类型
@@ -166,6 +167,8 @@ struct GameData {
         DWORD_PTR PlayerPtr;
         std::string Name;
         std::string ClanName;
+        std::string WeaponName;
+        int WeaponID;
         int TeamID;
         DWORD_PTR Mesh;         //
         DWORD_PTR AnimScript;   //
@@ -179,12 +182,14 @@ struct GameData {
     Vector3 Rotation;  // 转向
     int ScreenWidth;
     int ScreenHeight;
+    FVector2D ScreenCenter;
 
     ReadConfig readConfig;
     SkeletonConfig skeletonConfig;
     MapRadar mapRadar;
     Setting setting;
-
+    AutoTargeting autoTarget;
+    std::unordered_map<std::string, uint32_t> Offset;
     std::unordered_map<std::string, GamePlayerInfo> PlayerLists;  // 玩家列表
     mutable std::shared_mutex playerListsMutex;
 
@@ -484,5 +489,88 @@ inline void Clears() {
     }
 
     Sleep(100);
+}
+
+inline void OffsetInit() {
+    gameData.Offset["Uworld"] = Offset::UWorld;
+    gameData.Offset["Leve"] = Offset::CurrentLevel;
+    gameData.Offset["GameInstence"] = Offset::GameInstance;
+    gameData.Offset["GameState"] = Offset::GameState;
+    gameData.Offset["LocalPlayer"] = Offset::LocalPlayer;
+    gameData.Offset["PlayerController"] = Offset::PlayerController;
+    gameData.Offset["Actor"] = Offset::Actor;
+    gameData.Offset["GNames"] = Offset::GNames;
+    gameData.Offset["ObjID"] = Offset::ObjID;
+    gameData.Offset["AcknowledgedPawn"] = Offset::AcknowledgedPawn;
+    gameData.Offset["PlayerCameraManager"] = Offset::PlayerCameraManager;
+    gameData.Offset["ViewTarget"] = Offset::ViewTarget;
+    gameData.Offset["MyHUD"] = Offset::MyHUD;
+
+    gameData.Offset["Decrypt"] = Offset::XDecrypt;  // Shield指针
+    gameData.Offset["IDD"] = Offset::ChunkSize;
+    gameData.Offset["IsRor"] = Offset::IsRor;        //
+    gameData.Offset["TableOne"] = Offset::RorValue;  //
+    gameData.Offset["DecryptOne"] = Offset::XorKey1;
+    gameData.Offset["DecryptTwo"] = Offset::XorKey2;
+
+    gameData.Offset["WorldToMap"] = Offset::WorldToMap;
+    gameData.Offset["PlayerArray"] = Offset::PlayerArray;
+
+    gameData.Offset["m_rootComponent"] = Offset::RootComponent;
+    gameData.Offset["ComponentLocation"] = Offset::ComponentLocation;
+    gameData.Offset["TimeTillExplosion"] = Offset::TimeTillExplosion;
+    gameData.Offset["DroppedItem"] = Offset::DroppedItem;
+    gameData.Offset["DroppedItemGroup"] = Offset::DroppedItemGroup;
+
+    gameData.Offset["PlayerName"] = Offset::PlayerName;
+    gameData.Offset["AccountId"] = Offset::AccountId;
+    gameData.Offset["PubgIdData"] = Offset::PubgIdData;
+    gameData.Offset["PlayerState"] = Offset::PlayerState;
+    gameData.Offset["TeamNumber"] = Offset::LastTeamNum;
+    gameData.Offset["Playname"] = Offset::CharacterName;
+    gameData.Offset["Health"] = Offset::Health;
+    gameData.Offset["HealthMax"] = Offset::HealthMax;
+    gameData.Offset["Health_Die"] = Offset::GroggyHealth;
+    gameData.Offset["Health_DieMax"] = Offset::GroggyHealthMax;
+    gameData.Offset["CharacterState"] = Offset::CharacterState;
+    gameData.Offset["SpectatedCount"] = Offset::SpectatedCount;
+    gameData.Offset["WeaponProcessor"] = Offset::WeaponProcessor;
+    gameData.Offset["ComponentToWorld"] = Offset::ComponentToWorld;
+    gameData.Offset["Bone"] = Offset::StaticMesh;
+    gameData.Offset["PlayerSatisitc"] = Offset::PlayerStatistics;
+    gameData.Offset["DamageDealtOnEnemy"] = Offset::DamageDealtOnEnemy;
+    gameData.Offset["SurvivalLevel"] = Offset::SurvivalLevel;
+    gameData.Offset["PartnerLevel"] = Offset::PartnerLevel;
+    gameData.Offset["EquippedWeapons"] = Offset::EquippedWeapons;
+    gameData.Offset["CurrentWeaponIndex"] = Offset::CurrentWeaponIndex;
+    gameData.Offset["AimOffsets"] = Offset::AimOffsets;  // 被瞄偏移
+
+    gameData.Offset["WidgetStateMap"] = Offset::WidgetStateMap;
+    gameData.Offset["MapWidget"] = Offset::MapWidget;
+    gameData.Offset["TrainingMapGrid"] = Offset::TrainingMapGrid;
+    gameData.Offset["Visibility"] = Offset::Visibility;
+    gameData.Offset["Slot"] = Offset::Slot;
+    gameData.Offset["LayoutData"] = Offset::LayoutData;
+    gameData.Offset["Alignment"] = Offset::Alignment;
+    gameData.Offset["BlockInputWidgetList"] = Offset::BlockInputWidgetList;
+    gameData.Offset["SelectMinimapSizeIndex"] = Offset::SelectMinimapSizeIndex;
+
+    gameData.Offset["VehicleRiderComponent"] = Offset::VehicleRiderComponent;
+    gameData.Offset["Mesh"] = Offset::Mesh;
+    gameData.Offset["AnimScriptInstance"] = Offset::AnimScriptInstance;
+    gameData.Offset["SeatIndex"] = Offset::SeatIndex;
+
+    gameData.Offset["BoneArry"] = Offset::BoneArry;
+    gameData.Offset["CameraFov"] = Offset::FOV;
+    gameData.Offset["CameraRot"] = Offset::Rotation;
+    gameData.Offset["CameraPos"] = Offset::Location;
+
+    // automatic aiming
+    gameData.Offset["WeaponTrajectoryData"] = Offset::WeaponTrajectoryData;
+    gameData.Offset["TrajectoryConfig"] = Offset::TrajectoryConfig;
+    gameData.Offset["FloatCurves"] = Offset::FloatCurves;  //
+    gameData.Offset["Keys"] = Offset::Keys;                //
+    gameData.Offset["ComponentVelocity"] = Offset::ComponentVelocity;
+    gameData.Offset["Veloctity"] = Offset::Veloctity;
 }
 }  // namespace Data

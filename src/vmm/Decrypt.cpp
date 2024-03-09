@@ -3,10 +3,10 @@
 #include "SrcGame.h"
 
 DWORD Decrypt::CIndex(DWORD value) {
-    DWORD xorResult = value ^ Offset::XorKey1;
-    DWORD rotated = Offset::IsRor ? _rotr(xorResult, Offset::RorValue) : _rotl(xorResult, Offset::RorValue);
+    DWORD xorResult = value ^ gameData.Offset["DecryptOne"];
+    DWORD rotated = gameData.Offset["IsRor"] ? _rotr(xorResult, gameData.Offset["TableOne"]) : _rotl(xorResult, gameData.Offset["TableOne"]);
 
-    return rotated ^ (rotated << 0x10) ^ Offset::XorKey2;
+    return rotated ^ (rotated << 0x10) ^ xorResult, gameData.Offset["DecryptTwo"];
 }
 
 void Decrypt::DestroyXe() { DecFunction = reinterpret_cast<DWORD_PTR (*)(DWORD_PTR key, DWORD_PTR base)>(0); }
@@ -17,7 +17,7 @@ DWORD_PTR Decrypt::Xe(DWORD_PTR addr) {
         if (DecFunction == nullptr) {
             int64_t DecryptPtr = 0x0;
             while (!DecryptPtr) {
-                DecryptPtr = VmmCore::ReadValue<DWORD_PTR>((DWORD_PTR)gameData.GameBase + Offset::Decrypt);
+                DecryptPtr = VmmCore::ReadValue<DWORD_PTR>((DWORD_PTR)gameData.GameBase + gameData.Offset["Decrypt"]);
                 Sleep(1000);
             }
 

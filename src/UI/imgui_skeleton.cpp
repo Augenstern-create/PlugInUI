@@ -240,12 +240,19 @@ void ImGui::ShowSkeletonWindow(bool* p_open, ImVec2 display_size) {
                     ImVec2 form_size = {display_size.x, display_size.y};
                     auto world_location = gameData.mapRadar.world_location;
                     auto map_size = gameData.mapRadar.map_size;
-
+                    const float MapSizeFactored = gameData.mapRadar.map_size / gameData.mapRadar.max_map.map_zoom_value;
+                    const Vector3 WorldCenterLocation = {gameData.mapRadar.map_size * (1.0f + gameData.mapRadar.max_map.position.X),
+                                                         gameData.mapRadar.map_size * (1.0f + gameData.mapRadar.max_map.position.Y), 0.0f};
+                    FVector2D ScreenCenter = {form_size.x * 0.5f, form_size.y * 0.5f};
                     for (auto Player : Players) {
                         if (Player.TeamID == gameData.Myself.TeamID) continue;
                         std::string data = std::to_string((int)Player.TeamID);
-                        ImVec2 location = {0.0f, 0.0f};
-                        ImGui::PlayerDisplay(data.c_str(), Config.max_radar_size, Player.AimOffsets, location, Config.max_radar_color)
+                        const Vector3 WorldLocation = Player.Location + world_location;
+                        const Vector3 RadarPos = WorldLocation - WorldCenterLocation;
+                        const FVector2D RadarScreenPos =
+                            ScreenCenter + FVector2D{RadarPos.x / MapSizeFactored * ScreenCenter.Y, RadarPos.y / MapSizeFactored * ScreenCenter.Y};
+                        ImVec2 location = {RadarScreenPos.X, RadarScreenPos.Y};
+                        ImGui::PlayerDisplay(data.c_str(), Config.max_radar_size, Player.AimOffsets.y, location, Config.max_radar_color);
                     }
                 }
             }

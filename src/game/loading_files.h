@@ -1,7 +1,12 @@
 #pragma once
 #include <iostream>
 #include <fstream>
+#include <cstdint>
+#include <string>
+#include <stdexcept>
 #include "iconv.h"
+#include "utils/conversion.h"
+#include "Data.h"
 
 std::string GB18030ToUTF8(std::string txt) {
     // const char *from_charset = "GB18030";
@@ -88,22 +93,103 @@ void ExtractedContent(std::string filename) {
     }
 }
 
-void InitLoadingFile() {
+std::string CodeConversion(std::string path, std::string code) {
+    std::ifstream file(path, std::ios::binary);
+
+    if (!file.is_open()) {
+        return "";
+    }
+
+    // 读取文件内容
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    // 关闭文件
+    file.close();
+    iconv_t cd = iconv_open("UTF-8", "GB18030");
+    if (cd == (iconv_t)(-1)) {
+        return "";
+    }
+
+    char *inbuf = new char[content.size()];
+    char *outbuf = new char[content.size() * 2];  // UTF-8最多为GB18030的2倍长度
+    char *in = &content[0];
+    char *out = outbuf;
+    size_t inbytesleft = content.size();
+    size_t outbytesleft = content.size() * 2;
+
+    if (iconv(cd, &in, &inbytesleft, &out, &outbytesleft) == (size_t)(-1)) {
+        iconv_close(cd);
+        return "";
+    }
+
+    iconv_close(cd);
+
+    std::string utf8_content(outbuf, out - outbuf);
+
+    delete[] inbuf;
+    delete[] outbuf;
+    return utf8_content;
+}
+
+uint32_t hexStringToUint32(const std::string &hexString) {
+    std::string cleanString = hexString.substr(0, 2) == "0x" ? hexString.substr(2) : hexString;
+    for (char c : cleanString) {
+        if (!std::isxdigit(c)) {
+            throw std::invalid_argument("Invalid hex string");
+        }
+    }
+    unsigned long offsetLong;
+    try {
+        offsetLong = std::stoul(cleanString, nullptr, 16);
+    } catch (const std::invalid_argument &e) {
+        throw std::invalid_argument("Invalid hex string: " + std::string(e.what()));
+    } catch (const std::out_of_range &e) {
+        throw std::out_of_range("Hex value out of range for uint32_t: " + std::string(e.what()));
+    }
+
+    const unsigned long maxUint32 = static_cast<unsigned long>(0xFFFFFFFF);  // uint32_t 的最大值
+    if (offsetLong > maxUint32) {
+        throw std::overflow_error("Value out of range for uint32_t");
+    }
+    uint32_t offset = static_cast<uint32_t>(offsetLong);
+    return offset;
+}
+
+bool InitLoadingFile() {
+    SetConsoleOutputCP(CP_UTF8);
     std::filesystem::path currentPath = std::filesystem::current_path();
     std::string CurrentDirectory = currentPath.string();
-    std::string filename = CurrentDirectory + "\\offset\\28.1.2.3.txt";
+    std::string filename = CurrentDirectory + "\\offset\\28.1.2.9.txt";
+    std::string code = "GB2312";
+    std::string utf8_content = CodeConversion(filename, code);
+    if (utf8_content == "") return false;
 
-    ExtractedContent(filename);
-
-    // std::ifstream file(filename, std::ios::binary);
-    // if (!file.is_open()) {
-    //     std::cerr << "Error opening file: " << filename << std::endl;
-    //     return;
-    // }
-
-    // std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    // std::cout << content << std::endl;
-    //     std::string encoding = isUTF8(filename);
-    //     std::cout << "File encoding format is " << encoding << std::endl;
-    //     readFile(filename, encoding);
+    std::string line;
+    std::string PracticalContent = std::string(".常量");
+    std::istringstream iss(utf8_content);
+    std::vector<std::pair<std::string, uint32_t>> constants;
+    while (std::getline(iss, line)) {
+        if (line.empty()) continue;
+        if (line.substr(0, 5) == PracticalContent.substr(0, 5)) {
+            size_t comma_pos = line.find(',');
+            if (comma_pos != std::string::npos) {
+                std::string field_name = line.substr(8, comma_pos - 8);
+                if (isString(field_name, "")) continue;
+                size_t last_comma_pos = line.find_last_of(',');
+                std::string value = "0x" + line.substr(last_comma_pos + 1);
+                constants.push_back(std::make_pair(field_name, hexStringToUint32(value)));
+            }
+        }
+    }
+    // 打印提取的字段名和数值
+    for (const auto &constant : constants) {
+        if (constant.first == "Shield指针") {
+            gameData.Offset["Decrypt"] = constant.second;
+        } else if (constant.first == "被瞄偏移") {
+            gameData.Offset["AimOffsets"] = constant.second;
+        } else {
+            gameData.Offset[constant.first] = constant.second;
+        }
+    }
+    return true;
 }

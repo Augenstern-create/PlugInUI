@@ -37,7 +37,8 @@ int Refresh() {
 }
 void init() {
     ComponentsLists::LoadSet();
-    // InitLoadingFile();
+    Data::OffsetInit();
+    InitLoadingFile();
 }
 
 int main(int, char**) {

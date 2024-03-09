@@ -80,6 +80,14 @@ struct MapRadar {
     std::unordered_map<DWORD_PTR, Vector3> rader_players;  // 雷达坐标/比值
 };
 
+struct AutoTargeting {
+    bool is_lock;             // 锁定状态
+    DWORD_PTR target_entity;  // 目标实体
+    float target_distance;    // 目标距离
+    FVector aiming_point;     // 瞄准点
+    int FOV = 40;             // AR模式视野
+};
+
 struct Setting {
     enum Language { Chinese, English };
     // Language language = Language::Chinese;

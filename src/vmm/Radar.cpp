@@ -50,11 +50,11 @@ bool Radar::GetMap() {
 }
 
 bool Radar::GetMiniMap() {
-    DWORD_PTR minMapPtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + Offset::WidgetStateMap);
-    int minMapInt = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::WidgetStateMap + 0x8);
+    DWORD_PTR minMapPtr = VmmCore::ReadValue<DWORD_PTR>(gameData.MyHUD + gameData.Offset["WidgetStateMap"]);
+    int minMapInt = VmmCore::ReadValue<int>(gameData.MyHUD + gameData.Offset["WidgetStateMap"] + 0x8);
     for (int i = 0; i < 500; i++) {
         DWORD_PTR minMapData = VmmCore::ReadValue<DWORD_PTR>(minMapPtr + (i * 0x8));
-        int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(minMapData + Offset::ObjID));
+        int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(minMapData + gameData.Offset["ObjID"]));
         std::string WidgetName = GNames::GetNameByID(ID);
         if (WidgetName == "MinimapOriginalType_C") {
             gameData.mapRadar.min_map.map_radar = minMapData;
@@ -66,19 +66,19 @@ bool Radar::GetMiniMap() {
 }
 
 bool Radar::GetMapGrid() {
-    uint64_t BlockInputWidgetList = VmmCore::ReadValue<uint64_t>(gameData.MyHUD + Offset::BlockInputWidgetList);
-    int BlockInputWidgetListCount = VmmCore::ReadValue<int>(gameData.MyHUD + Offset::BlockInputWidgetList + 0x8);
+    uint64_t BlockInputWidgetList = VmmCore::ReadValue<uint64_t>(gameData.MyHUD + gameData.Offset["BlockInputWidgetList"]);
+    int BlockInputWidgetListCount = VmmCore::ReadValue<int>(gameData.MyHUD + gameData.Offset["BlockInputWidgetList"] + 0x8);
     for (int i = 0; i < 500; i++) {
         uint64_t Widget = VmmCore::ReadValue<uint64_t>(BlockInputWidgetList + i * 0x8);
-        int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(Widget + Offset::ObjID));
+        int ID = Decrypt::CIndex(VmmCore::ReadValue<int>(Widget + gameData.Offset["ObjID"]));
         std::string WidgetName = GNames::GetNameByID(ID);
         if (WidgetName == "NewWorldMapWidget_BP_C") {
-            gameData.mapRadar.max_map.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid + 0x30);
+            gameData.mapRadar.max_map.map_grid = VmmCore::ReadValue<uint64_t>(Widget + gameData.Offset["TrainingMapGrid"] + 0x30);
             gameData.mapRadar.max_map.map_radar = Widget;
             return true;
         }
         if (WidgetName == "UI_TrainingWorldMapWidget_C") {
-            gameData.mapRadar.max_map.map_grid = VmmCore::ReadValue<uint64_t>(Widget + Offset::TrainingMapGrid);
+            gameData.mapRadar.max_map.map_grid = VmmCore::ReadValue<uint64_t>(Widget + gameData.Offset["TrainingMapGrid"]);
             gameData.mapRadar.max_map.map_radar = Widget;
             return true;
         }
@@ -88,21 +88,21 @@ bool Radar::GetMapGrid() {
 }
 
 bool Radar::GetVisibility(DWORD_PTR map_radar) {
-    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(map_radar + Offset::Visibility) == ESlateVisibility::SelfHitTestInvisible;
+    auto Visibility = VmmCore::ReadValue<ESlateVisibility>(map_radar + gameData.Offset["Visibility"]) == ESlateVisibility::SelfHitTestInvisible;
     return Visibility;
 }
 
 float Radar::GetZoomFactor(FVector2D default_size, DWORD_PTR map_grid, DWORD_PTR* map_address, FMargin* declare) {
-    *map_address = VmmCore::ReadValue<DWORD_PTR>(map_grid + Offset::Slot);
+    *map_address = VmmCore::ReadValue<DWORD_PTR>(map_grid + gameData.Offset["Slot"]);
     if (Utils::ValidPtr(*map_address)) return 0.0f;
-    *declare = VmmCore::ReadValue<FMargin>(*map_address + Offset::LayoutData + 0x0);
+    *declare = VmmCore::ReadValue<FMargin>(*map_address + gameData.Offset["LayoutData"] + 0x0);
     const FVector2D CurrentSize = {declare->Right, declare->Bottom};
     auto factor = CurrentSize.X / default_size.X;
     return factor;
 }
 
 FVector2D Radar::GetPosition(DWORD_PTR map_address, FMargin declare, FVector2D default_size, float zoom_value) {
-    auto Alignment = VmmCore::ReadValue<FVector2D>(map_address + Offset::LayoutData + 0x0 + Offset::Alignment);
+    auto Alignment = VmmCore::ReadValue<FVector2D>(map_address + gameData.Offset["LayoutData"] + 0x0 + gameData.Offset["Alignment"]);
     const FVector2D CurrentPos = {declare.Right * (Alignment.X - 0.5f) - declare.Left, declare.Bottom * (Alignment.Y - 0.5f) - declare.Top};
     const FVector2D position = {CurrentPos.X / default_size.X / zoom_value * 2.0f, CurrentPos.Y / default_size.Y / zoom_value * 2.0f};
     return position;
@@ -129,7 +129,7 @@ void Radar::Update() {
             auto zoom_value = map_size / map_zoom_value;
 
             Vector3 player_to_world = {player_location.x + world_location.x, player_location.y + world_location.y, player_location.z};
-            Vector3 world_center = {map_size * (1 + position.x), map_size * (1 + position.y), 0.0f};
+            Vector3 world_center = {map_size * (1 + position.X), map_size * (1 + position.Y), 0.0f};
             auto radar_location = player_to_world - world_center;
 
             gameData.mapRadar.max_map.map_address = map_address;

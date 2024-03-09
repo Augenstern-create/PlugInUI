@@ -201,6 +201,8 @@ int UIPlay() {
     Weapon::LoadTexture(texture_path);
     gameData.ScreenWidth = g_detached_form.width_;
     gameData.ScreenHeight = g_detached_form.height_;
+    gameData.ScreenCenter.X = gameData.ScreenWidth * 0.5f;
+    gameData.ScreenCenter.Y = gameData.ScreenHeight * 0.5f;
     SetWindowLong(g_detached_form.hwnd_, GWL_STYLE, WS_POPUP);
     // SetWindowLongPtr(g_detached_form.hwnd_, GWL_EXSTYLE, WS_EX_TRANSPARENT);
     while (!glfwWindowShouldClose(g_main_form.windows_) && !glfwWindowShouldClose(g_detached_form.windows_)) {
