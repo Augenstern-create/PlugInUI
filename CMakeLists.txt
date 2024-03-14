@@ -18,7 +18,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
 endif()
 if (MSVC)
     # 使用Microsoft Visual C++编译器时
-    add_compile_options(/wd4200)  # 禁用 warning C4200
+    add_compile_options(/wd4200)  # 禁用 warning C4200 #define _AFXDLL
+    add_compile_definitions(_AFXDLL)  # MFC 
 endif()
 
 # find_package(OpenMP REQUIRED)
@@ -41,6 +42,7 @@ include_directories(${CMAKE_SOURCE_DIR}/lib/glfw/include/)
 include_directories(${CMAKE_SOURCE_DIR}/lib/glad/include/)
 include_directories(${CMAKE_SOURCE_DIR}/lib/inspect/)
 include_directories(${CMAKE_SOURCE_DIR}/lib/iconv/include/)
+include_directories(${CMAKE_SOURCE_DIR}/lib/keys/)
 
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/UI/ SRC_UI_FILES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src/game/ SRC_GAME_FILES)
@@ -50,6 +52,7 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/src/utils/ SRC_UTILS_FILES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/lib/ImGui/ SRC_IMGUI_FILES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/lib/glad/ SRC_GLAD_FILES)
 aux_source_directory(${CMAKE_SOURCE_DIR}/lib/inspect/ SRC_INSPECT_FILES)
+aux_source_directory(${CMAKE_SOURCE_DIR}/lib/keys/ SRC_KEYS_FILES)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 link_directories(${CMAKE_SOURCE_DIR}/lib/MemProcFS/lib)
@@ -58,7 +61,7 @@ link_directories(${CMAKE_SOURCE_DIR}/lib/glfw)
 link_directories(${CMAKE_SOURCE_DIR}/lib/iconv)
 
 
-set(SRC_FILES  ${SRC_IMGUI_FILES} ${SRC_GAME_FILES} ${SRC_UTILS_FILES} ${SRC_UE4MATH_FILES}  ${SRC_UI_FILES} ${SRC_VMM_FILES} ${SRC_GLAD_FILES} ${SRC_INSPECT_FILES})
+set(SRC_FILES  ${SRC_IMGUI_FILES} ${SRC_GAME_FILES} ${SRC_UTILS_FILES} ${SRC_UE4MATH_FILES}  ${SRC_UI_FILES} ${SRC_VMM_FILES} ${SRC_GLAD_FILES} ${SRC_INSPECT_FILES} ${SRC_KEYS_FILES})
 
 add_executable(${PROJECT_NAME}   ${SRC_FILES} )
 target_link_libraries(${PROJECT_NAME}  legacy_stdio_definitions vmm leechcore d3d11 DirectXTex glfw3 libiconvStatic)

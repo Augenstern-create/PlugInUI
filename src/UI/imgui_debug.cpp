@@ -52,11 +52,11 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
             ImGui::Text("ViewTarget: %lld", gameData.ViewTarget);
             ImGui::Text("MyHUD: %lld", gameData.MyHUD);
             ImGui::Text("Scene: %d", (int)gameData.Scene);
+            ImGui::Text("map_id: %d", gameData.mapRadar.map_id);
+            ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("MapRadar")) {
-            ImGui::Text("map_id: %d", gameData.mapRadar.map_id);
-            ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
             ImGui::Text("map_size: %f", gameData.mapRadar.map_size);
             ImGui::Text("radar_size: %f", gameData.mapRadar.radar_size);
             ImGui::Text("world_location: x: %f  y: %f", gameData.mapRadar.world_location.x, gameData.mapRadar.world_location.y);

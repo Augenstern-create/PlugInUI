@@ -508,8 +508,9 @@ inline void OffsetInit() {
 
     gameData.Offset["Decrypt"] = Offset::XDecrypt;  // Shield指针
     gameData.Offset["IDD"] = Offset::ChunkSize;
-    gameData.Offset["IsRor"] = Offset::IsRor;        //
+    gameData.Offset["Pz"] = Offset::IsRor;           //
     gameData.Offset["TableOne"] = Offset::RorValue;  //
+    gameData.Offset["TableTwo"] = Offset::SorValue;  //
     gameData.Offset["DecryptOne"] = Offset::XorKey1;
     gameData.Offset["DecryptTwo"] = Offset::XorKey2;
 

@@ -22,6 +22,8 @@
 #include <omp.h>
 #include <chrono>
 
+#include "utils/KmBox.h"
+
 FVector GetVihecleSpeed(ULONG64 ACharacter) {
     ULONG64 VehicleRiderComponent = VmmCore::ReadValue<DWORD_PTR>(ACharacter + gameData.Offset["VehicleRiderComponent"]);
 
@@ -66,6 +68,17 @@ float GetBulletDrop(float step, FWeaponTrajectoryConfig CurrentWeaponConfig) {
         DP = ((((TGZ * SST) * STS) * VDC) * BDS) + DP;
     }
     return DP;
+}
+
+FTransform GetSocketTransform(FName SocketName, ERelativeTransformSpace TransformSpace, FTransform ComponentToWorld) {
+    switch (TransformSpace) {
+        case RTS_Actor:
+        case RTS_Component:
+        case RTS_ParentBoneSpace: {
+            return FTransform();
+        }
+    }
+    return ComponentToWorld;
 }
 
 void AimBot() {
@@ -133,6 +146,37 @@ void AimBot() {
                 aiming_point = targetPlayer.Skeleton.ScreenBones[EBoneIndex::neck_01];
             }
 
+            float BulletDrop = 0;
+            float TravelTime = 0;
+            float BallisticDragScale = 1;
+            float BallisticDropScale = 1;
+            float TrajectoryGravityZ = 0;
+            FName FiringAttachPoint;
+            FName ScopingAttachPoint;
+            DWORD_PTR Mesh3P = 0;
+            VmmCore::ScatterReadEx(hsIndex, localPlayer.CurrentWeapon + gameData.Offset["TrajectoryGravityZ"], (float*)&TrajectoryGravityZ);
+            VmmCore::ScatterReadEx(hsIndex, localPlayer.CurrentWeapon + gameData.Offset["FiringAttachPoint"], (FName*)&FiringAttachPoint);
+            VmmCore::ScatterReadEx(hsIndex, localPlayer.CurrentWeapon + gameData.Offset["ScopingAttachPoint"], (FName*)&ScopingAttachPoint);
+            VmmCore::ScatterReadEx(hsIndex, localPlayer.CurrentWeapon + gameData.Offset["Mesh3P"], (DWORD_PTR*)&Mesh3P);
+            VmmCore::ScatterExecuteReadEx(hsIndex);
+
+            if (FiringAttachPoint == FName()) return;
+            if (ScopingAttachPoint == FName()) return;
+
+            DWORD_PTR WeaponMesh = Decrypt::Xe(Mesh3P);
+            if (Utils::ValidPtr(WeaponMesh)) return;
+            FTransform WeaponComponentToWorld;
+
+            VmmCore::ScatterReadEx(hsIndex, WeaponMesh + gameData.Offset["ComponentToWorld"], (FTransform*)&WeaponComponentToWorld);
+            VmmCore::ScatterExecuteReadEx(hsIndex);
+
+            // FTransform GunTransform = GetSocketTransform(WeaponMesh, RTS_World, FiringAttachPoint);
+
+            // auto GunLocation = GunTransform.Translation;
+            // FRotator GunRotation = GunTransform.Rotation;
+            // auto BulletDropAdd = GetScopingAttachPointRelativeZ(localPlayer.CurrentWeapon, ScopingAttachPoint) -
+            //                      GunTransform.GetRelativeTransform(WeaponComponentToWorld).Translation.Z;
+
             float flyTime = targetPlayer.Distance / TrajectoryConfig.InitialSpeed;
             Vector3 PredictedPos = targetPlayer.Skeleton.LocationBones[EBoneIndex::forehead] + velocity * flyTime;
             flyTime /= 0.1;
@@ -145,6 +189,8 @@ void AimBot() {
             // Utils::Log(2, "TrajectoryConfig.BallisticCurve: 0x%11x", TrajectoryConfig.BallisticCurve);
             // Utils::Log(2, "RichCurve: %f", RichCurve.DefaultValue);
             // Utils::Log(2, "RichCurve: %d", KeysArrayCount);
+
+            KmBox::Move(1.0f, 0.0f);
 
         } else {
             gameData.autoTarget.is_lock = false;
@@ -171,7 +217,7 @@ void UpdateAddress() {
             DWORD_PTR GNames =
                 Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + gameData.Offset["GNames"]));  // 140697243680768 | 206938192 | 177578792
             gameData.GNames = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(GNames));
-            gameData.UWorld = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + gameData.Offset["UWorld"]));
+            gameData.UWorld = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.GameBase + gameData.Offset["Uworld"]));
             gameData.GameState = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + gameData.Offset["GameState"]));
             gameData.CurrentLevel = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + gameData.Offset["Leve"]));
             gameData.GameInstance = Decrypt::Xe(VmmCore::ReadValue<DWORD_PTR>(gameData.UWorld + gameData.Offset["GameInstence"]));
@@ -477,6 +523,19 @@ void UpdatePlayers() {
             // if (player.SurvivalTier > 0) player.SurvivalLevel = (player.SurvivalTier - 1) * 500 + player.SurvivalLevel;
         }
         Data::SetCachePlayers2(players);
+    }
+}
+
+void UpdateLocation() {
+    while (true) {
+        if (gameData.Scene != Scene::Gameing) continue;
+        std::vector<PlayerInfo> players = Data::GetCachePlayers();
+        if (players.size() == 0) continue;
+        int hsIndex = 1;
+        for (PlayerInfo& player : players) {
+            VmmCore::ScatterReadEx(hsIndex, player.MeshComponent + gameData.Offset["ComponentLocation"], (Vector3*)&player.Location);
+        }
+        VmmCore::ScatterExecuteReadEx(hsIndex);
     }
 }
 

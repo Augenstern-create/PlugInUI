@@ -176,7 +176,7 @@ bool InitLoadingFile() {
     SetConsoleOutputCP(CP_UTF8);
     std::filesystem::path currentPath = std::filesystem::current_path();
     std::string CurrentDirectory = currentPath.string();
-    std::string filename = CurrentDirectory + "\\offset\\28.1.2.9.txt";
+    std::string filename = CurrentDirectory + "\\offset\\28.2.1.91.txt";
     std::string code = "GB2312";
     std::string utf8_content = CodeConversion(filename, code);
     if (utf8_content == "") return false;
@@ -211,8 +211,8 @@ bool InitLoadingFile() {
             gameData.Offset[constant.first] = constant.second;
         }
     }
-    for (auto it : gameData.Offset) {  // 使用it作为迭代器的名字
-        std::cout << "Name: " << it.first << " value: 0x" << std::hex << it.second << std::endl;
-    }
+    // for (auto it : gameData.Offset) {  // 使用it作为迭代器的名字
+    //     std::cout << "Name: " << it.first << " value: 0x" << std::hex << it.second << std::endl;
+    // }
     return true;
 }

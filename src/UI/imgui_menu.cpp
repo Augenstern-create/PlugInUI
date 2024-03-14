@@ -9,6 +9,7 @@
 #include <tuple>
 #include "imgui_module.h"
 #include "game/LanguageSwitch.h"
+#include "game/config.h"
 
 void MenuSubform();
 void SubmenuSubform();
@@ -18,6 +19,7 @@ void ColorSubform();
 void DraftOption(std::vector<ComponentsLists::Components<bool*>> Lists);
 void DraftSlider(std::vector<ComponentsLists::ComponentsSlider<float*, float>> Lists, std::vector<ComponentsLists::ComponentsSlider<int*, int>> IntLists);
 void DraftColor(std::vector<ComponentsLists::Components<float*>> Lists);
+void DraftCheckBox();
 enum SetButtion { RadarBut, SkeletonBut, SetBut };
 static SetButtion set_but_ = SetButtion::RadarBut;
 static ImVec2 g_display_size = {0, 0};
@@ -93,34 +95,8 @@ void MenuSubform() {
     if (ImGui::Button("Seting", buttonSize)) {
         set_but_ = SetButtion::SetBut;
     }
-    // static int selectedRadioButton = 0;
-    // ImGui::RadioButton("Option 1", &selectedRadioButton, 0);
-    // ImGui::RadioButton("Option 2", &selectedRadioButton, 1);
-    // ImGui::RadioButton("Option 3", &selectedRadioButton, 2);
 
-    if (gameData.Config.Font.multilingualism == 0) {
-        bool islanguage1 = true;
-        bool islanguage2 = false;
-        ImGui::SetCursorPos({(size.x - buttonSize.x) * 0.5f, size.y * 7.0f / 10.0f});
-        bool language1 = ImGui::RenderCustomCheckbox("中文", &islanguage1, gameData.Config.Slider.fontSize);
-        ImGui::SetCursorPos({(size.x - buttonSize.x) * 0.5f, size.y * 8.0f / 10.0f});
-        bool language2 = ImGui::RenderCustomCheckbox("English", &islanguage2, gameData.Config.Slider.fontSize);
-        if (islanguage1 != true || islanguage2 != false) {
-            gameData.Config.Font.multilingualism = 1;
-        }
-    } else if (gameData.Config.Font.multilingualism == 1) {
-        bool islanguage1 = false;
-        bool islanguage2 = true;
-        ImGui::SetCursorPos({(size.x - buttonSize.x) * 0.5f, size.y * 7.0f / 10.0f});
-        bool language1 = ImGui::RenderCustomCheckbox("中文", &islanguage1, gameData.Config.Slider.fontSize);
-        ImGui::SetCursorPos({(size.x - buttonSize.x) * 0.5f, size.y * 8.0f / 10.0f});
-        bool language2 = ImGui::RenderCustomCheckbox("English", &islanguage2, gameData.Config.Slider.fontSize);
-        if (islanguage1 != false || islanguage2 != true) {
-            gameData.Config.Font.multilingualism = 0;
-        }
-    }
-
-    std::string butName = gameData.Config.Font.multilingualism == 0 ? "保存设置" : "Save Settings";
+    std::string butName = (int)gameData.setting.language == 0 ? "保存设置" : "Save Settings";
     ImGui::SetCursorPos({(size.x - buttonSize.x) * 0.5f, size.y * 9.0f / 10.0f});
     if (ImGui::Button(butName.c_str(), buttonSize)) {
         if (ComponentsLists::SaveSet()) {
@@ -140,6 +116,7 @@ void OptionSubform() {
             DraftOption(ComponentsLists::skeleton_box_);
             break;
         case SetButtion::SetBut:
+            DraftCheckBox();
             DraftOption(ComponentsLists::setting_box_);
             break;
 
@@ -190,6 +167,38 @@ void DraftOption(std::vector<ComponentsLists::Components<bool*>> Lists) {
         ImGui::RenderCustomCheckbox(name.c_str(), parameter.value, gameData.setting.menu_font_size);
         ImGui::NextColumn();
     }
+    ImGui::Columns(1);
+}
+void DraftCheckBox() {
+    ImVec2 size = ImGui::GetContentRegionAvail();
+
+    bool radio_button_magic_box_selected = (gameData.setting.key_type == KeyType::MagicBox);
+    bool radio_button_not_have_selected = (gameData.setting.key_type == KeyType::NotHave);
+    bool radio_button_Chinese_selected = (gameData.setting.language == Language::Chinese);
+    bool radio_button_English_selected = (gameData.setting.language == Language::English);
+    ImGui::Columns(2, nullptr, false);
+
+    if (ImGui::RenderCustomCheckbox("键鼠魔盒", &radio_button_magic_box_selected, gameData.setting.menu_font_size)) {
+        gameData.setting.key_type = KeyType::MagicBox;
+    }
+    if (ImGui::RenderCustomCheckbox("NotHave", &radio_button_not_have_selected, gameData.setting.menu_font_size)) {
+        gameData.setting.key_type = KeyType::NotHave;
+    }
+    if (ImGui::RenderCustomCheckbox("中文", &radio_button_Chinese_selected, gameData.setting.menu_font_size)) {
+        gameData.setting.language = Language::Chinese;
+    }
+    if (ImGui::RenderCustomCheckbox("English", &radio_button_English_selected, gameData.setting.menu_font_size)) {
+        gameData.setting.language = Language::English;
+    }
+
+    ImGui::NextColumn();
+    static char buffer[256] = "";
+    std::strncpy(buffer, gameData.setting.COMID.c_str(), sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+    if (ImGui::InputText("COMID", buffer, IM_ARRAYSIZE(buffer))) {
+        gameData.setting.COMID = buffer;
+    }
+    ImGui::SameLine();
     ImGui::Columns(1);
 }
 

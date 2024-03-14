@@ -72,6 +72,7 @@ void ImGui::RoundedRectangleSubform(const char* text, ImVec2 size, ImVec2 pos, f
 void ImGui::RenderCustomSizedText(ImVec2 pos, const char* text, float FontSize, ImU32 Color, const char* text_end, bool hide_text_after_hash) {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
+
     const char* text_display_end;
     if (hide_text_after_hash) {
         text_display_end = FindRenderedTextEnd(text, text_end);
@@ -176,11 +177,15 @@ bool ImGui::RenderCustomCheckbox(const char* label, bool* value, float fontSize)
     const ImGuiStyle& style = g.Style;
     const ImGuiID id = window->GetID(label);
 
+    float defaultFontSize = ImGui::GetIO().FontDefault ? ImGui::GetIO().FontDefault->FontSize : 16.0f;
+    float font_zoom_size = fontSize / defaultFontSize;
     ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
-    const ImVec2 total_size(40, 20);
+    label_size = label_size * font_zoom_size;
+    const ImVec2 total_size(40.0f, 20.0f);
     // 在这里根据Checkbox的状态计算位置
     ImVec2 pos = window->DC.CursorPos;
     pos.y += style.FramePadding.y;
+    // ImGui::InvisibleButton(label, ImVec2(label_size.x + total_size.x, total_size.y));
     ImGui::InvisibleButton(label, total_size);
 
     // 在这里根据Checkbox的状态绘制图形
@@ -198,6 +203,7 @@ bool ImGui::RenderCustomCheckbox(const char* label, bool* value, float fontSize)
                                           ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
     }
     ImGui::RenderCustomSizedText(ImVec2(pos.x + total_size.x + 2, pos.y), label, fontSize);
+
     bool pressed = ImGui::IsItemClicked();
     if (pressed) *value = !*value;
     return pressed;

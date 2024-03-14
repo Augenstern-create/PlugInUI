@@ -10,6 +10,7 @@
 #include "leechcore.h"
 
 #include "game/loading_files.h"
+#include "utils/KmBox.h"
 static ID3D11Device* g_pd3dDevice = NULL;
 static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
 static IDXGISwapChain* g_pSwapChain = NULL;
@@ -39,7 +40,9 @@ void init() {
     ComponentsLists::LoadSet();
     Data::OffsetInit();
     InitLoadingFile();
+    KmBox::Init(gameData.setting.COMID.c_str());
 }
+void Close() { KmBox::Close(); }
 
 int main(int, char**) {
     // std::cout << "Version : " << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << std::endl;
@@ -58,6 +61,7 @@ int main(int, char**) {
     std::cout << "Initializing Imgui" << std::endl;
 
     UIPlay();
+    Close();
     exit(0);
     return 0;
 }

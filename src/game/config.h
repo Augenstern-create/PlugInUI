@@ -1,6 +1,10 @@
 #pragma once
 #include <iostream>
+#include <string>
 #include "imgui.h"
+
+enum KeyType { MagicBox = 0, NotHave = 1 };
+enum Language { Chinese = 0, English = 1 };
 
 struct ReadConfig {
     bool is_drawing_names = true;                             // 绘制名字
@@ -89,13 +93,15 @@ struct AutoTargeting {
 };
 
 struct Setting {
-    enum Language { Chinese, English };
     // Language language = Language::Chinese;
 
-    int language = 0;  // 中英文切换 0中文,1英文
+    Language language = Language::Chinese;  // 中英文切换 0中文,1英文
 
     float default_font_size = 10.0f;  // 默认字体大小
     float menu_font_size = 18.0f;     // 菜单字体大小
+
+    std::string COMID = "COM5";
+    KeyType key_type = KeyType::MagicBox;
 
     ImColor subform_color = {0.1f, 0.11f, 0.13f, 1.00f};
 };
