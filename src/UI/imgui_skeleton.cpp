@@ -19,6 +19,7 @@
 #include "glad/glad.h"
 #include <algorithm>
 #include <limits>
+#include "game/Bone.h"
 
 float Min(float values, float values2) { return values < values2 ? values : values2; }
 float Max(float values, float values2) { return values > values2 ? values : values2; }
@@ -131,13 +132,14 @@ bool DrawingPlayer(PlayerInfo Player) {
                 WeaponPos.x -= width * 0.5f;
                 WeaponPos.y -= height;
                 ImGui::DrawPlayerArms(reinterpret_cast<ImTextureID>(static_cast<intptr_t>(TextureID)), WeaponPos, {(float)width, (float)height});
-            } else {
-                ImVec2 txtSize = ImGui::CalcTextSize(WeaponName.c_str());
-                txtSize = txtSize * Config.font_zoom_size;
-                WeaponPos.x -= txtSize.x * 0.5f;
-                WeaponPos.y -= Config.skeleton_font_size;
-                ImGui::RenderCustomSizedText(WeaponPos, WeaponName.c_str(), Config.skeleton_font_size);
             }
+            // else {
+            //     ImVec2 txtSize = ImGui::CalcTextSize(WeaponName.c_str());
+            //     txtSize = txtSize * Config.font_zoom_size;
+            //     WeaponPos.x -= txtSize.x * 0.5f;
+            //     WeaponPos.y -= Config.skeleton_font_size;
+            //     ImGui::RenderCustomSizedText(WeaponPos, WeaponName.c_str(), Config.skeleton_font_size);
+            // }
         }
         // 绘制骨骼/方框
         {
@@ -230,8 +232,11 @@ void ImGui::ShowSkeletonWindow(bool* p_open, ImVec2 display_size) {
         if (gameData.Scene == Scene::Gameing) {
             Config.font_zoom_size = Config.skeleton_font_size / gameData.setting.default_font_size;
             auto Players = Data::GetPlayers();
-            for (auto Player : Players) {
-                DrawingPlayer(Player);
+            for (PlayerInfo& player : Players) {
+                for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
+                    player.Skeleton.ScreenBones[bone] = VectorHelper::WorldToScreen(player.Skeleton.LocationBones[bone]);
+                }
+                DrawingPlayer(player);
             }
 
             // 绘制大小地图雷达
@@ -254,6 +259,15 @@ void ImGui::ShowSkeletonWindow(bool* p_open, ImVec2 display_size) {
                         ImVec2 location = {RadarScreenPos.X, RadarScreenPos.Y};
                         ImGui::PlayerDisplay(data.c_str(), Config.max_radar_size, Player.AimOffsets.y, location, Config.max_radar_color);
                     }
+                }
+                if (gameData.mapRadar.min_map.is_ibility && Config.is_drawing_small_map_radar) {
+                    // FVector2D MiniRadarScreenLocation;
+                    // for (auto Player : Players) {
+                    //     if (Player.TeamID == gameData.Myself.TeamID) continue;
+                    //     std::string data = std::to_string((int)Player.TeamID);
+
+                    //     ImGui::PlayerDisplay(data.c_str(), Config.min_radar_size, Player.AimOffsets.y, location, Config.min_radar_color);
+                    // }
                 }
             }
 

@@ -56,8 +56,8 @@ struct PlayerInfo {
     int WeaponID;                    // 武器ID
     std::string WeaponName;          // 武器名称
 
-    DWORD_PTR Bone;    // 骨骼
-    FVector BoneArry;  // 骨骼
+    DWORD_PTR Bone;       // 骨骼
+    FTransform BoneArry;  // 骨骼
 
     struct {
         std::unordered_map<int, FTransform> Bones;       // 骨骼的变换信息
@@ -189,11 +189,12 @@ struct GameData {
     MapRadar mapRadar;
     Setting setting;
     AutoTargeting autoTarget;
+
     std::unordered_map<std::string, uint32_t> Offset;
     std::unordered_map<std::string, GamePlayerInfo> PlayerLists;  // 玩家列表
     mutable std::shared_mutex playerListsMutex;
 
-    struct {
+    struct Cache {
         mutable std::shared_mutex CacheEntityMutex;    // 实体信息互斥锁
         mutable std::shared_mutex CachePlayersMutex;   // 缓存玩家互斥锁
         mutable std::shared_mutex CachePlayersMutex2;  // 缓存玩家互斥锁
@@ -212,7 +213,20 @@ struct GameData {
         std::vector<ItemGroupInfo> ItemGroups;         // 物品组信息
         std::vector<ProjectInfo> CacheProjects;        // 缓存投掷物信息
         std::vector<ProjectInfo> Projects;             // 投掷物信息
-    } Actors;
+
+        Cache()
+            : CacheEntityMutex(),
+              CachePlayersMutex(),
+              CachePlayersMutex2(),
+              PlayersMutex(),
+              CacheProjectsMutex(),
+              ProjectsMutex(),
+              CacheItemsMutex(),
+              ItemsMutex(),
+              ItemGroupsMutex() {}
+    };
+
+    Cache Actors;
 
     struct {
         bool Lock;               // 锁定状态

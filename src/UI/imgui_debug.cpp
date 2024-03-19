@@ -25,8 +25,9 @@ static ImVec2 g_display_size = {0, 0};
 void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
     if (g_display_size != display_size) {
         ImGui::SetNextWindowSize(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always);
+        g_display_size = display_size;
     }
-    // ImGui::SetNextWindowPos({0, 0});
+    ImGui::SetNextWindowPos({display_size.x / 6, display_size.y / 6}, ImGuiCond_FirstUseEver);
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_None;  // 0
 
@@ -52,11 +53,11 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
             ImGui::Text("ViewTarget: %lld", gameData.ViewTarget);
             ImGui::Text("MyHUD: %lld", gameData.MyHUD);
             ImGui::Text("Scene: %d", (int)gameData.Scene);
-            ImGui::Text("map_id: %d", gameData.mapRadar.map_id);
-            ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("MapRadar")) {
+            ImGui::Text("map_id: %d", gameData.mapRadar.map_id);
+            ImGui::Text("map_name: %s", gameData.mapRadar.map_name.c_str());
             ImGui::Text("map_size: %f", gameData.mapRadar.map_size);
             ImGui::Text("radar_size: %f", gameData.mapRadar.radar_size);
             ImGui::Text("world_location: x: %f  y: %f", gameData.mapRadar.world_location.x, gameData.mapRadar.world_location.y);
@@ -87,8 +88,9 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
         if (ImGui::BeginTabItem("Gameing")) {
             ImGui::Text("PlayerCount: %d", gameData.PlayerCount);
             ImGui::Text("ActorCount: %d", gameData.ActorCount);
+            ImGui::Text("ScreenWidth: %d", gameData.ScreenWidth);
+            ImGui::Text("ScreenHeight: %d", gameData.ScreenHeight);
             ImGui::Text("FOV: %f", gameData.FOV);
-            ImGui::Text("width: %d  height:　%d", gameData.ScreenWidth, gameData.ScreenHeight);
             ImGui::Text("Location: x: %f  y: %f  z: %f", gameData.Location.x, gameData.Location.y, gameData.Location.z);
             ImGui::Text("Rotation: x: %f  y: %f  z: %f", gameData.Rotation.x, gameData.Rotation.y, gameData.Rotation.z);
             ImGui::EndTabItem();
@@ -111,7 +113,8 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
             ImGui::SetColumnWidth(1, from_size.x / 7);
             ImGui::SetColumnWidth(2, from_size.x / 7);
             ImGui::SetColumnWidth(3, from_size.x / 7);
-            ImGui::SetColumnWidth(4, from_size.x * 2 / 7);
+            ImGui::SetColumnWidth(4, from_size.x / 7);
+            ImGui::SetColumnWidth(5, from_size.x * 2 / 7);
 
             ImGui::Text("PlayerPtr");
             ImGui::NextColumn();
@@ -157,7 +160,7 @@ void ImGui::ShowDebugWindow(bool* p_open, ImVec2 display_size) {
             ImGui::NextColumn();
             auto Players = Data::GetPlayers();
             for (auto player : Players) {
-                auto skeletons = player.Skeleton.ScreenBones;
+                auto skeletons = player.Skeleton.LocationBones;
                 ImGui::Text("%lld", player.Entity);
                 ImGui::NextColumn();
                 ImGui::Text("%s", player.Name.c_str());

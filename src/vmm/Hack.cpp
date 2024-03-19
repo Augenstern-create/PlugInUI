@@ -281,9 +281,9 @@ void UpdateEntitys() {
         if (gameData.Scene != Scene::Gameing) continue;
         DWORD_PTR Actor;
         int ActorCount;
-        VmmCore::ScatterReadEx(0, gameData.Actor, (DWORD_PTR*)&Actor);
-        VmmCore::ScatterReadEx(0, gameData.Actor + 0x8, (int*)&ActorCount);
-        VmmCore::ScatterExecuteReadEx(0);
+        VmmCore::ScatterReadEx(VMM_Handle::ENTITY, gameData.Actor, (DWORD_PTR*)&Actor);
+        VmmCore::ScatterReadEx(VMM_Handle::ENTITY, gameData.Actor + 0x8, (int*)&ActorCount);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::ENTITY);
         gameData.ActorCount = ActorCount;
         if (ActorCount <= 0 || ActorCount > 80000) {
             continue;
@@ -294,9 +294,9 @@ void UpdateEntitys() {
 
         for (int i = 0; i < ActorCount; i++) {
             DWORD_PTR Actors = (Actor + (i * 0x8));
-            VmmCore::ScatterReadEx(0, Actors, (DWORD_PTR*)&entitys[i]);
+            VmmCore::ScatterReadEx(VMM_Handle::ENTITY, Actors, (DWORD_PTR*)&entitys[i]);
         }
-        VmmCore::ScatterExecuteReadEx(0);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::ENTITY);
 
         for (auto entity : entitys) {
             if (entity == 0) continue;
@@ -308,10 +308,10 @@ void UpdateEntitys() {
 
         for (int i = 0; i < CacheEntity.size(); i++) {
             if (CacheEntity[i].ID == 0) {
-                VmmCore::ScatterReadEx(0, CacheEntity[i].Entity + gameData.Offset["ObjID"], (int*)&(CacheEntity[i].ID));
+                VmmCore::ScatterReadEx(VMM_Handle::ENTITY, CacheEntity[i].Entity + gameData.Offset["ObjID"], (int*)&(CacheEntity[i].ID));
             }
         }
-        VmmCore::ScatterExecuteReadEx(0);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::ENTITY);
         for (auto& entity : CacheEntity) {
             if (entity.decodeID == 0 && entity.ID != 0) {
                 auto decodeID = Decrypt::CIndex(entity.ID);
@@ -448,58 +448,53 @@ void UpdatePlayers() {
         std::vector<PlayerInfo> players = Data::GetCachePlayers();
         if (players.size() == 0) continue;
         for (PlayerInfo& player : players) {
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["Playname"], (DWORD_PTR*)&player.pCharacterName);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["Mesh"], (DWORD_PTR*)&player.MeshComponent);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["AimOffsets"], (Vector3*)&player.AimOffsets);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["TeamNumber"], (int*)&player.TeamID);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["Health"], (float*)&player.Health);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["HealthMax"], (float*)&player.HealthMax);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["Health_Die"], (float*)&player.GroggyHealth);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["Health_DieMax"], (float*)&player.GroggyHealthMax);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["PlayerState"], (DWORD_PTR*)&player.PlayerState);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["CharacterState"], (ECharacterState*)&player.CharacterState);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["SpectatedCount"], (int*)&player.SpectatedCount);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["WeaponProcessor"], (DWORD_PTR*)&player.WeaponProcessor);
-            VmmCore::ScatterReadEx(2, player.Entity + gameData.Offset["m_rootComponent"], (DWORD_PTR*)&player.RootComponent);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["Playname"], (DWORD_PTR*)&player.pCharacterName);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["Mesh"], (DWORD_PTR*)&player.MeshComponent);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["TeamNumber"], (int*)&player.TeamID);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["Health"], (float*)&player.Health);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["HealthMax"], (float*)&player.HealthMax);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["Health_Die"], (float*)&player.GroggyHealth);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["Health_DieMax"], (float*)&player.GroggyHealthMax);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["PlayerState"], (DWORD_PTR*)&player.PlayerState);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["CharacterState"], (ECharacterState*)&player.CharacterState);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["SpectatedCount"], (int*)&player.SpectatedCount);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["WeaponProcessor"], (DWORD_PTR*)&player.WeaponProcessor);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.Entity + gameData.Offset["m_rootComponent"], (DWORD_PTR*)&player.RootComponent);
         }
 
-        VmmCore::ScatterExecuteReadEx(2);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::PLAYER);
 
         for (PlayerInfo& player : players) {
             player.PlayerState = Decrypt::Xe(player.PlayerState);
             player.RootComponent = Decrypt::Xe(player.RootComponent);
 
-            VmmCore::ScatterReadEx(2, player.pCharacterName, (FText*)&player.CharacterName);
-            VmmCore::ScatterReadEx(2, player.MeshComponent + gameData.Offset["ComponentLocation"], (Vector3*)&player.Location);
-            VmmCore::ScatterReadEx(2, player.PlayerState + gameData.Offset["PlayerSatisitc"], (int*)&player.KillCount);
-            // VmmCore::ScatterReadEx(2, player.PlayerState + gameData.Offset["SurvivalTier"], (int*)&player.SurvivalTier);
-            VmmCore::ScatterReadEx(2, player.PlayerState + gameData.Offset["SurvivalLevel"], (int*)&player.SurvivalLevel);
-            VmmCore::ScatterReadEx(2, player.PlayerState + gameData.Offset["PartnerLevel"], (EPartnerLevel*)&player.PartnerLevel);
-            VmmCore::ScatterReadEx(2, player.PlayerState + gameData.Offset["DamageDealtOnEnemy"], (float*)&player.DamageDealtOnEnemy);
-
-            VmmCore::ScatterReadEx(2, player.MeshComponent + gameData.Offset["ComponentToWorld"], (FTransform*)&player.ComponentToWorld);
-            VmmCore::ScatterReadEx(2, player.MeshComponent + gameData.Offset["Bone"], (DWORD_PTR*)&player.StaticMesh);
-
-            VmmCore::ScatterReadEx(2, player.WeaponProcessor + gameData.Offset["EquippedWeapons"], (DWORD_PTR*)&player.EquippedWeapons);
-            VmmCore::ScatterReadEx(2, player.WeaponProcessor + gameData.Offset["CurrentWeaponIndex"], (BYTE*)&player.CurrentWeaponIndex);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.pCharacterName, (FText*)&player.CharacterName);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.PlayerState + gameData.Offset["PlayerSatisitc"], (int*)&player.KillCount);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.PlayerState + gameData.Offset["SurvivalLevel"], (int*)&player.SurvivalLevel);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.PlayerState + gameData.Offset["PartnerLevel"], (EPartnerLevel*)&player.PartnerLevel);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.PlayerState + gameData.Offset["DamageDealtOnEnemy"], (float*)&player.DamageDealtOnEnemy);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.MeshComponent + gameData.Offset["BoneArry"], (FTransform*)&player.BoneArry);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.MeshComponent + gameData.Offset["Bone"], (DWORD_PTR*)&player.Bone);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.WeaponProcessor + gameData.Offset["EquippedWeapons"], (DWORD_PTR*)&player.EquippedWeapons);
+            VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.WeaponProcessor + gameData.Offset["CurrentWeaponIndex"], (BYTE*)&player.CurrentWeaponIndex);
         }
 
-        VmmCore::ScatterExecuteReadEx(2);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::PLAYER);
 
         for (PlayerInfo& player : players) {
             if (player.CurrentWeaponIndex >= 0 && player.CurrentWeaponIndex < 8) {
-                VmmCore::ScatterReadEx(2, player.EquippedWeapons + player.CurrentWeaponIndex * 8, (DWORD_PTR*)&player.CurrentWeapon);
+                VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.EquippedWeapons + player.CurrentWeaponIndex * 8, (DWORD_PTR*)&player.CurrentWeapon);
             }
         }
 
-        VmmCore::ScatterExecuteReadEx(2);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::PLAYER);
         for (PlayerInfo& player : players) {
             if (player.CurrentWeapon > 0) {
-                VmmCore::ScatterReadEx(2, player.CurrentWeapon + gameData.Offset["ObjID"], (int*)&player.WeaponID);
+                VmmCore::ScatterReadEx(VMM_Handle::PLAYER, player.CurrentWeapon + gameData.Offset["ObjID"], (int*)&player.WeaponID);
             }
         }
 
-        VmmCore::ScatterExecuteReadEx(2);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::PLAYER);
 
         for (PlayerInfo& player : players) {
             player.WeaponID = Decrypt::CIndex(player.WeaponID);
@@ -514,49 +509,13 @@ void UpdatePlayers() {
             player.TeamName = Utils::AnalyzeClanName(Name);
             if (player.Name == gameData.Myself.Name && player.Name != "Driver" || player.Entity == gameData.Myself.PlayerPtr) {
                 gameData.Myself.PlayerPtr = player.Entity;
-                gameData.Myself.Location = player.Location;
                 gameData.Myself.WeaponID = player.WeaponID;
                 gameData.Myself.WeaponName = player.WeaponName;
             }
-            player.Distance = gameData.Myself.Location.Distance(player.Location) / 100.0f;
-
-            // if (player.SurvivalTier > 0) player.SurvivalLevel = (player.SurvivalTier - 1) * 500 + player.SurvivalLevel;
         }
-        Data::SetCachePlayers2(players);
+        Data::SetCachePlayers(players);
     }
 }
-
-void UpdateLocation() {
-    while (true) {
-        if (gameData.Scene != Scene::Gameing) continue;
-        std::vector<PlayerInfo> players = Data::GetCachePlayers();
-        if (players.size() == 0) continue;
-        int hsIndex = 1;
-        for (PlayerInfo& player : players) {
-            VmmCore::ScatterReadEx(hsIndex, player.MeshComponent + gameData.Offset["ComponentLocation"], (Vector3*)&player.Location);
-        }
-        VmmCore::ScatterExecuteReadEx(hsIndex);
-    }
-}
-
-void UpdateCamera() {
-    float FOV;
-    Vector3 Location;
-    Vector3 Rotation;
-
-    VmmCore::ScatterReadEx(3, gameData.PlayerCameraManager + gameData.Offset["CameraFov"], (float*)&FOV);
-    VmmCore::ScatterReadEx(3, gameData.PlayerCameraManager + gameData.Offset["CameraRot"], (Vector3*)&Location);
-    VmmCore::ScatterReadEx(3, gameData.PlayerCameraManager + gameData.Offset["CameraPos"], (Vector3*)&Rotation);
-
-    VmmCore::ScatterExecuteReadEx(3);
-
-    gameData.FOV = FOV;
-    gameData.Location = Location;
-    gameData.Rotation = Rotation;
-}
-
-// 比较函数，用于std::sort
-bool compareByDistance(const PlayerInfo& a, const PlayerInfo& b) { return a.Distance > b.Distance; }
 
 Vector3 PlayerToRadarPosition(Vector3 position) {
     // Vector3 value;
@@ -566,88 +525,124 @@ Vector3 PlayerToRadarPosition(Vector3 position) {
     if (value.z < 0) value = {value.x, value.y, -value.z};
     return value;
 }
-
-void UpdateSkeleton() {
+// 1382160711696
+//  比较函数，用于std::sort
+bool compareByDistance(const PlayerInfo& a, const PlayerInfo& b) { return a.Distance > b.Distance; }
+void UpdateLocation() {
     while (true) {
         if (gameData.Scene != Scene::Gameing) continue;
+        std::vector<PlayerInfo> Cacheplayers = Data::GetCachePlayers();
+        if (Cacheplayers.size() == 0) continue;
+        for (PlayerInfo& player : Cacheplayers) {
+            VmmCore::ScatterReadEx(VMM_Handle::LOCATION, player.MeshComponent + gameData.Offset["ComponentLocation"], (Vector3*)&player.Location);
+            VmmCore::ScatterReadEx(VMM_Handle::LOCATION, player.Entity + gameData.Offset["AimOffsets"], (Vector3*)&player.AimOffsets);
+        }
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::LOCATION);
+        float ImageMapSize = gameData.mapRadar.radar_size;
+        for (PlayerInfo& player : Cacheplayers) {
+            player.Distance = gameData.Myself.Location.Distance(player.Location) / 100.0f;
+            if (player.Entity == gameData.Myself.PlayerPtr) {
+                gameData.Myself.Location = player.Location;
+            }
+        }
         std::vector<PlayerInfo> players;
-        std::vector<PlayerInfo> Cacheplayers = Data::GetCachePlayers2();
-
         for (PlayerInfo& player : Cacheplayers) {
             if (player.Distance > 1000.0f || player.Distance < 0.0f) {
                 continue;
             } else if (player.TeamID < 0 || player.TeamID > 299) {
                 continue;
-            } else if (player.Entity == 0 || player.PlayerState == 0 || player.MeshComponent == 0 || player.StaticMesh == 0) {
+            } else if (player.Entity == 0 || player.PlayerState == 0 || player.MeshComponent == 0 || player.Bone == 0) {
                 continue;
             } else {
+                const Vector3 WorldLocation = PlayerToRadarPosition(player.Location);
+                Vector3 pos = {WorldLocation.x / ImageMapSize, WorldLocation.y / ImageMapSize, WorldLocation.z};
+                gameData.mapRadar.rader_players[player.Entity] = pos;
                 players.push_back(player);
-            }
-        }
-        if (players.size() == 0) continue;
-
-        for (PlayerInfo& player : players) {
-            for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
-                VmmCore::ScatterReadEx(3, player.StaticMesh + (bone * sizeof(FTransform)), (FTransform*)&player.Skeleton.Bones[bone]);
-            }
-        }
-        VmmCore::ScatterExecuteReadEx(3);
-
-        if (!gameData.autoTarget.is_lock) {
-            gameData.autoTarget.target_entity = 0;
-            gameData.autoTarget.target_distance = 1000.0f;
-        }
-        UpdateCamera();
-        float ImageMapSize = gameData.mapRadar.radar_size;
-        for (PlayerInfo& player : players) {
-            for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
-                player.Skeleton.LocationBones[bone] = VectorHelper::GetBoneWithRotation(player.Skeleton.Bones[bone], player.ComponentToWorld);
-                player.Skeleton.ScreenBones[bone] = VectorHelper::WorldToScreen(player.Skeleton.LocationBones[bone]);
-            }
-            const Vector3 WorldLocation = PlayerToRadarPosition(player.Location);
-            Vector3 pos = {WorldLocation.x / ImageMapSize, WorldLocation.y / ImageMapSize, WorldLocation.z};
-            gameData.mapRadar.rader_players[player.Entity] = pos;
-
-            if (!gameData.autoTarget.is_lock) {
-                if (player.Entity != gameData.Myself.PlayerPtr && player.TeamID != gameData.Myself.TeamID) {
-                    float screenDistance = std::sqrt(std::pow(player.Skeleton.ScreenBones[EBoneIndex::forehead].x - gameData.ScreenCenter.X, 2) +
-                                                     std::pow(player.Skeleton.ScreenBones[EBoneIndex::forehead].y - gameData.ScreenCenter.Y, 2));
-
-                    if (screenDistance < gameData.autoTarget.FOV) {
-                        if (screenDistance < gameData.autoTarget.target_distance) {
-                            gameData.autoTarget.target_entity = player.Entity;
-                            gameData.autoTarget.target_distance = player.Distance;
-                        }
-                    }
+                if (player.Entity == gameData.Myself.PlayerPtr) {
+                    gameData.Myself.AtlaseLocation = {pos.x, pos.y};
                 }
             }
         }
+        if (players.size() == 0) continue;
         std::sort(players.begin(), players.end(), compareByDistance);
+        Data::SetCachePlayers2(players);
+    }
+}
 
-        const Vector3 WorldLocations = PlayerToRadarPosition(gameData.Myself.Location);
-        gameData.Myself.AtlaseLocation = {WorldLocations.x / ImageMapSize, WorldLocations.y / ImageMapSize};
+void UpdateCamera() {
+    while (true) {
+        if (gameData.Scene != Scene::Gameing) continue;
+        float FOV;
+        Vector3 Location;
+        Vector3 Rotation;
+        VmmCore::ScatterReadEx(VMM_Handle::FOV, gameData.PlayerCameraManager + gameData.Offset["CameraFov"], (float*)&FOV);
+        VmmCore::ScatterReadEx(VMM_Handle::FOV, gameData.PlayerCameraManager + gameData.Offset["CameraRot"], (Vector3*)&Rotation);
+        VmmCore::ScatterReadEx(VMM_Handle::FOV, gameData.PlayerCameraManager + gameData.Offset["CameraPos"], (Vector3*)&Location);
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::FOV);
+        gameData.FOV = FOV;
+        gameData.Location = Location;
+        gameData.Rotation = Rotation;
+    }
+}
+
+void UpdateSkeleton() {
+    while (true) {
+        if (gameData.Scene != Scene::Gameing) continue;
+        std::vector<PlayerInfo> players = Data::GetCachePlayers2();
+        if (players.size() == 0) continue;
+        for (PlayerInfo& player : players) {
+            for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
+                VmmCore::ScatterReadEx(VMM_Handle::SKELETON, player.Bone + (bone * sizeof(FTransform)), (FTransform*)&player.Skeleton.Bones[bone]);
+            }
+        }
+        VmmCore::ScatterExecuteReadEx(VMM_Handle::SKELETON);
+        for (PlayerInfo& player : players) {
+            for (EBoneIndex bone : SkeletonLists::skeleton_bones) {
+                player.Skeleton.LocationBones[bone] = VectorHelper::GetBoneWithRotation(player.Skeleton.Bones[bone], player.BoneArry);
+            }
+        }
         Data::SetPlayers(players);
     }
 }
 
 void HackStart() {
-    std::thread thread1(ListenGameProcessState);
-    thread1.join();
-    std::thread thread2(UpdateAddress);
-    thread2.detach();
-    std::thread thread3(UpdateEntitys);
-    thread3.detach();
-    std::thread thread4(UpdatePlayers);
-    thread4.detach();
-    std::thread thread5(UpdateSkeleton);
-    thread5.detach();
-    std::thread thread6(Radar::Update);
-    thread6.detach();
-    // std::thread thread7(UpdateItem);
-    // thread7.detach();
+    std::thread threadInit(ListenGameProcessState);
+    threadInit.join();
+    std::thread threadAddress(UpdateAddress);
+    threadAddress.detach();
+    std::thread threadEntitys(UpdateEntitys);
+    threadEntitys.detach();
+    std::thread threadPlayers(UpdatePlayers);
+    threadPlayers.detach();
+    std::thread threadLocation(UpdateLocation);
+    threadLocation.detach();
+    std::thread threadSkeleton(UpdateSkeleton);
+    threadSkeleton.detach();
+    std::thread threadCamera(UpdateCamera);
+    threadCamera.detach();
+    std::thread threadRadar(Radar::Update);
+    threadRadar.detach();
 
     while (true) {
         if (gameData.Scene == Scene::Gameing) {
+            // if (!gameData.autoTarget.is_lock) {
+            //     gameData.autoTarget.target_entity = 0;
+            //     gameData.autoTarget.target_distance = 1000.0f;
+            // }
+
+            // if (!gameData.autoTarget.is_lock) {
+            //     if (player.Entity != gameData.Myself.PlayerPtr && player.TeamID != gameData.Myself.TeamID) {
+            //         float screenDistance = std::sqrt(std::pow(player.Skeleton.ScreenBones[EBoneIndex::forehead].x - gameData.ScreenCenter.X, 2) +
+            //                                          std::pow(player.Skeleton.ScreenBones[EBoneIndex::forehead].y - gameData.ScreenCenter.Y, 2));
+
+            //         if (screenDistance < gameData.autoTarget.FOV) {
+            //             if (screenDistance < gameData.autoTarget.target_distance) {
+            //                 gameData.autoTarget.target_entity = player.Entity;
+            //                 gameData.autoTarget.target_distance = player.Distance;
+            //             }
+            //         }
+            //     }
+            // }
         } else {
             // Data::Clears();
         }

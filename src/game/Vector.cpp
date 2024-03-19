@@ -216,11 +216,8 @@ D3DMATRIX D3DMATRIXMultiply(D3DMATRIX pM1, D3DMATRIX pM2) {
 }
 
 Vector3 VectorHelper::GetBoneWithRotation(FTransform BoneArray, FTransform ComponentToWorld) {
-    // FMatrix Matrix;
-    // Matrix = MatrixMultiplication(BoneArray.ToMatrixWithScale(), ComponentToWorld.ToMatrixWithScale());
     D3DMATRIX BoneMatrix = ToMatrixWithScale(BoneArray.Rotation, BoneArray.Translation, BoneArray.Scale3D);
     D3DMATRIX ComponentToWorldMatrix = ToMatrixWithScale(ComponentToWorld.Rotation, ComponentToWorld.Translation, ComponentToWorld.Scale3D);
     D3DMATRIX NewMatrix = D3DMATRIXMultiply(BoneMatrix, ComponentToWorldMatrix);
-    // return Vector3(Matrix._41, Matrix._42, Matrix._43);
     return Vector3(NewMatrix._41, NewMatrix._42, NewMatrix._43);
 }

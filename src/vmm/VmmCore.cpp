@@ -98,6 +98,10 @@ BOOL VmmCore::InitScatterHandles() {
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
+    scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
+    scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
+    scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
+    scatterhandles.push_back({VMMDLL_Scatter_Initialize(hVMM, pid, VMMDLL_FLAG_NOCACHE | VMMDLL_FLAG_NOPAGING_IO)});
     return scatterhandles.size() > 0;
 }
 

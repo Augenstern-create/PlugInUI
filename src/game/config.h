@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <shared_mutex>
 #include "imgui.h"
 
 enum KeyType { MagicBox = 0, NotHave = 1 };
@@ -40,6 +41,7 @@ struct SkeletonConfig {
     float time_per_frame = 0.0f;            // 每帧耗时
     float skeleton_show_distance = 500.0f;  // 骨骼显示距离
     float max_radar_size = 6.0f;            // 大地图雷达大小
+    float min_radar_size = 6.0f;            // 小地图雷达大小
 
     ImVec2 windows_form_size = {0.0f, 0.0f};  // 窗口大小
 
@@ -53,6 +55,7 @@ struct SkeletonConfig {
     ImColor skeleton_color = {1.0f, 0.0f, 0.0f, 1.00f};      // 骨骼颜色
     ImColor box_color = {1.0f, 0.0f, 0.0f, 1.00f};           // 方框颜色
     ImColor max_radar_color = {1.0f, 0.0f, 0.0f, 1.00f};     // 大地图雷达颜色
+    ImColor min_radar_color = {1.0f, 0.0f, 0.0f, 1.00f};     // 小地图雷达颜色
 };
 
 struct MapRadar {

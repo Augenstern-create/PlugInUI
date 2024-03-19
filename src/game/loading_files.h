@@ -211,8 +211,5 @@ bool InitLoadingFile() {
             gameData.Offset[constant.first] = constant.second;
         }
     }
-    // for (auto it : gameData.Offset) {  // 使用it作为迭代器的名字
-    //     std::cout << "Name: " << it.first << " value: 0x" << std::hex << it.second << std::endl;
-    // }
     return true;
 }
